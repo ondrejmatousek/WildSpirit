@@ -1,0 +1,4 @@
+{
+  "ConnectionStrings": { "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=DesignStore;Trusted_Connection=True;TrustServerCertificate=True" },
+  "DevelopmentAdmin": { "Email": "admin@example.test", "Password": "SET-VIA-USER-SECRETS-NOT-HERE" }
+}
