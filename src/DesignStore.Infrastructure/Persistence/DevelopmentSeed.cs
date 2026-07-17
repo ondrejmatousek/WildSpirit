@@ -1,15 +1,14 @@
 using DesignStore.Domain.Catalog;
+using DesignStore.Domain.Commerce;
 using DesignStore.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace DesignStore.Infrastructure.Persistence;
 
 public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<ApplicationUser> users,
-    RoleManager<IdentityRole<Guid>> roles, IConfiguration configuration,
-    ILogger<DevelopmentSeed> logger)
+    RoleManager<IdentityRole<Guid>> roles, IConfiguration configuration)
 {
     public async Task RunAsync(CancellationToken ct = default)
     {
@@ -17,23 +16,20 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         await SeedRolesAsync();
         await SeedAdminAsync();
         if (!await db.Categories.AnyAsync(ct)) await SeedCatalogAsync(ct);
+        if (!await db.Materials.AnyAsync(ct)) await SeedStage2CatalogAsync(ct);
+        if (!await db.DiscountCodes.AnyAsync(ct)) { db.DiscountCodes.Add(new DiscountCode { Code="WELCOME10",Type=DiscountType.Percentage,Value=10,MinimumOrderValue=1000,IsActive=true }); await db.SaveChangesAsync(ct); }
     }
 
     private async Task SeedRolesAsync()
     {
-        foreach (var role in new[] { "Administrator", "CatalogEditor", "Warehouse", "Support" })
+        foreach (var role in new[] { "Administrator", "ContentManager", "CatalogEditor", "Warehouse", "Support", "Customer" })
             if (!await roles.RoleExistsAsync(role)) await roles.CreateAsync(new IdentityRole<Guid>(role));
     }
 
     private async Task SeedAdminAsync()
     {
-        var email = configuration["DevelopmentAdmin:Email"];
-        var password = configuration["DevelopmentAdmin:Password"];
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            logger.LogInformation("Development admin was not created. Configure DevelopmentAdmin secrets when needed.");
-            return;
-        }
+        var email = configuration["DevelopmentAdmin:Email"] ?? "admin@wildspirit.local";
+        var password = configuration["DevelopmentAdmin:Password"] ?? "WildSpirit.Dev.Admin.2026!";
         var user = await users.FindByEmailAsync(email);
         if (user is null)
         {
@@ -41,7 +37,30 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
             var result = await users.CreateAsync(user, password);
             if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(x => x.Description)));
         }
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            var update = await users.UpdateAsync(user);
+            if (!update.Succeeded) throw new InvalidOperationException(string.Join("; ", update.Errors.Select(x => x.Description)));
+        }
         if (!await users.IsInRoleAsync(user, "Administrator")) await users.AddToRoleAsync(user, "Administrator");
+
+        var customerEmail = configuration["DevelopmentCustomer:Email"] ?? "customer@wildspirit.local";
+        var customerPassword = configuration["DevelopmentCustomer:Password"] ?? "WildSpirit.Dev.Customer.2026!";
+        var customer = await users.FindByEmailAsync(customerEmail);
+        if (customer is null)
+        {
+            customer = new ApplicationUser { UserName = customerEmail, Email = customerEmail, EmailConfirmed = true };
+            var result = await users.CreateAsync(customer, customerPassword);
+            if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(x => x.Description)));
+        }
+        if (!customer.EmailConfirmed)
+        {
+            customer.EmailConfirmed = true;
+            var update = await users.UpdateAsync(customer);
+            if (!update.Succeeded) throw new InvalidOperationException(string.Join("; ", update.Errors.Select(x => x.Description)));
+        }
+        if (!await users.IsInRoleAsync(customer, "Customer")) await users.AddToRoleAsync(customer, "Customer");
     }
 
     private async Task SeedCatalogAsync(CancellationToken ct)
@@ -98,6 +117,29 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
             };
             db.Products.Add(product);
         }
+        await db.SaveChangesAsync(ct);
+    }
+
+    private async Task SeedStage2CatalogAsync(CancellationToken ct)
+    {
+        var oak=new Material{Code="OAK",Translations=[new MaterialTranslation{Culture="cs-CZ",Name="Dub"},new MaterialTranslation{Culture="en",Name="Oak"},new MaterialTranslation{Culture="de",Name="Eiche"}]};
+        var leather=new Material{Code="LEATHER",Translations=[new MaterialTranslation{Culture="cs-CZ",Name="Třísločiněná kůže"},new MaterialTranslation{Culture="en",Name="Vegetable-tanned leather"},new MaterialTranslation{Culture="de",Name="Pflanzlich gegerbtes Leder"}]};
+        var brass=new Material{Code="BRASS",Translations=[new MaterialTranslation{Culture="cs-CZ",Name="Mosaz"},new MaterialTranslation{Culture="en",Name="Brass"},new MaterialTranslation{Culture="de",Name="Messing"}]};
+        db.Materials.AddRange(oak,leather,brass);
+        db.Colors.AddRange(new Color{Code="NATURAL",Hex="#B58B5A",Translations=[new ColorTranslation{Culture="cs-CZ",Name="Přírodní"}]},new Color{Code="BLACK",Hex="#171717",Translations=[new ColorTranslation{Culture="cs-CZ",Name="Černá"}]});
+        var atelier=new Collection{IsPublished=true,Translations=[new CollectionTranslation{Culture="cs-CZ",Name="Atelier 01",Slug="atelier-01",Description="První autorská kolekce."}]};db.Collections.Add(atelier);
+        var product=await db.Products.Include(x=>x.Translations).Include(x=>x.Variants).Include(x=>x.Options).ThenInclude(x=>x.Translations).Include(x=>x.Options).ThenInclude(x=>x.Values).ThenInclude(x=>x.Translations).OrderBy(x=>x.DisplayOrder).FirstAsync(ct);
+        product.Collection=atelier;product.HasVariants=true;product.StockQuantity=0;
+        var variants=new[]
+        {
+            new ProductVariant{Product=product,Sku=$"{product.Sku}-OAK",Name="Dub přírodní",Price=product.BasePrice,AvailabilityStatus=AvailabilityStatus.InStock,StockQuantity=2},
+            new ProductVariant{Product=product,Sku=$"{product.Sku}-DARK",Name="Dub tmavý",Price=product.BasePrice+2500,AvailabilityStatus=AvailabilityStatus.MadeToOrder,CanBeMadeToOrder=true,EstimatedProductionDays=35}
+        };
+        var productMaterial=new ProductMaterial{Product=product,Material=oak};
+        var option=new ProductOption{Product=product,Type=ProductOptionType.Select,IsRequired=true,Translations=[new ProductOptionTranslation{Culture="cs-CZ",Name="Povrchová úprava"}],Values=[new ProductOptionValue{PriceAdjustment=0,Translations=[new ProductOptionValueTranslation{Culture="cs-CZ",Name="Přírodní olej"}]},new ProductOptionValue{PriceAdjustment=1800,AdditionalProductionDays=5,Translations=[new ProductOptionValueTranslation{Culture="cs-CZ",Name="Tmavý olej"}]}]};
+        db.ProductVariants.AddRange(variants);
+        db.Add(productMaterial);
+        db.ProductOptions.Add(option);
         await db.SaveChangesAsync(ct);
     }
 

@@ -1,0 +1,25 @@
+@model DesignStore.Web.Controllers.LoginModel
+@{ ViewData["Title"] = "Přihlášení"; }
+<section class="auth-shell">
+    <div class="auth-visual" role="img" aria-label="Vintage interiér s koženým křeslem">
+        <div class="auth-visual-copy"><p class="eyebrow">Wild Spirit Members</p><p>Váš výběr.<br />Váš příběh.</p></div>
+    </div>
+    <div class="auth-panel">
+        <div class="auth-card">
+            <p class="eyebrow">Vítejte zpět</p>
+            <h1>Přihlášení</h1>
+            <p class="auth-intro">Vstupte do svého účtu nebo do správy ateliéru.</p>
+            <form asp-action="Login" method="post" class="login-form">
+                <input asp-for="ReturnUrl" type="hidden" />
+                <div asp-validation-summary="All" class="validation"></div>
+                <label asp-for="Email">E-mailová adresa</label>
+                <input asp-for="Email" autocomplete="username" placeholder="vas@email.cz" />
+                <label asp-for="Password">Heslo</label>
+                <input asp-for="Password" autocomplete="current-password" placeholder="Vaše heslo" />
+                <label class="check-row"><input asp-for="RememberMe" /><span>Zapamatovat přihlášení</span></label>
+                <button class="button button-wide" type="submit">Přihlásit se</button>
+            </form>
+            <p class="auth-note">Potřebujete pomoc? Napište na <a href="mailto:studio@wildspirit.design">studio@wildspirit.design</a>.</p>
+        </div>
+    </div>
+</section>

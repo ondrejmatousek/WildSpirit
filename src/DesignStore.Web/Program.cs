@@ -12,7 +12,10 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.AddControllersWithViews().AddViewLocalization();
-builder.Services.AddAuthorizationBuilder().AddPolicy("AdminArea", policy => policy.RequireRole("Administrator", "CatalogEditor", "Warehouse", "Support"));
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AdminArea", policy => policy.RequireRole("Administrator", "ContentManager", "CatalogEditor", "Warehouse", "Support"))
+    .AddPolicy("CatalogManage", policy => policy.RequireRole("Administrator", "ContentManager", "CatalogEditor"));
+builder.Services.AddAuthorizationBuilder().AddPolicy("OrderManage", policy => policy.RequireRole("Administrator", "Warehouse", "Support"));
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) { app.UseExceptionHandler("/Home/Error"); app.UseHsts(); }
 app.UseHttpsRedirection();

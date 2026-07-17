@@ -6,6 +6,8 @@ public sealed class Product : AuditableEntity
 {
     public Guid CategoryId { get; set; }
     public Category Category { get; set; } = null!;
+    public Guid? CollectionId { get; set; }
+    public Collection? Collection { get; set; }
     public string Sku { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
     public decimal? StartingPrice { get; set; }
@@ -20,15 +22,24 @@ public sealed class Product : AuditableEntity
     public bool IsFeatured { get; set; }
     public bool IsNew { get; set; }
     public bool IsLimited { get; set; }
+    public bool HasVariants { get; set; }
     public int DisplayOrder { get; set; }
     public string MainImageUrl { get; set; } = string.Empty;
     public byte[] RowVersion { get; set; } = [];
     public List<ProductTranslation> Translations { get; set; } = [];
     public List<ProductVariant> Variants { get; set; } = [];
+    public List<ProductImage> Images { get; set; } = [];
+    public List<ProductMaterial> ProductMaterials { get; set; } = [];
+    public List<ProductOption> Options { get; set; } = [];
+    public List<ProductRelatedItem> RelatedItems { get; set; } = [];
+    public List<ProductSlugHistory> SlugHistory { get; set; } = [];
 
-    public bool CanAddToCart(int quantity = 1) =>
-        IsPublished && AvailabilityStatus == AvailabilityStatus.InStock && quantity > 0 &&
-        (!TrackInventory || StockQuantity >= quantity);
+    public bool CanAddToCart(int quantity = 1) => IsPublished && quantity > 0 &&
+        (HasVariants
+            ? Variants.Any(variant =>
+                variant.AvailabilityStatus == AvailabilityStatus.InStock &&
+                variant.StockQuantity >= quantity)
+            : AvailabilityStatus == AvailabilityStatus.InStock && (!TrackInventory || StockQuantity >= quantity));
 
     public bool CanRequestProduction() =>
         IsPublished && AvailabilityStatus == AvailabilityStatus.MadeToOrder && CanBeMadeToOrder;
@@ -50,6 +61,8 @@ public sealed class ProductTranslation : AuditableEntity
     public string ShippingInformation { get; set; } = string.Empty;
     public string SeoTitle { get; set; } = string.Empty;
     public string SeoDescription { get; set; } = string.Empty;
+    public string OpenGraphTitle { get; set; } = string.Empty;
+    public string OpenGraphDescription { get; set; } = string.Empty;
 }
 
 public sealed class ProductVariant : AuditableEntity
@@ -64,4 +77,15 @@ public sealed class ProductVariant : AuditableEntity
     public bool CanBeMadeToOrder { get; set; }
     public int? EstimatedProductionDays { get; set; }
     public byte[] RowVersion { get; set; } = [];
+    public List<ProductVariantTranslation> Translations { get; set; } = [];
+    public List<ProductVariantOptionValue> OptionValues { get; set; } = [];
+}
+
+public sealed class ProductVariantTranslation : AuditableEntity
+{
+    public Guid ProductVariantId { get; set; }
+    public ProductVariant ProductVariant { get; set; } = null!;
+    public string Culture { get; set; } = "cs-CZ";
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
 }

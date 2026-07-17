@@ -1,10 +1,10 @@
 # DesignStore / Wild Spirit
 
-Základ prémiového vícejazyčného e-shopu pro autorský nábytek, svítidla a kožené výrobky. Aktuálně je dokončena Etapa 1: solution, katalog, Identity, lokalizované veřejné stránky, development seed, první migrace a automatické testy.
+Základ prémiového vícejazyčného e-shopu pro autorský nábytek, svítidla a kožené výrobky. Aktuálně je dokončena Etapa 2: rozšířený katalog, administrační rozhraní, varianty, produktové volby, bezpečná práce s obrázky, SEO a historie slugů.
 
 ## Technologie
 
-.NET 10, ASP.NET Core MVC, Razor Views, Entity Framework Core 10, SQL Server, ASP.NET Core Identity, FluentValidation, Serilog a xUnit.
+.NET 10, ASP.NET Core MVC, Razor Views, Entity Framework Core 10, SQL Server, ASP.NET Core Identity, FluentValidation, Serilog, ImageSharp 3.1 a xUnit.
 
 ## Struktura
 
@@ -24,14 +24,33 @@ dotnet ef database update --project src/DesignStore.Infrastructure --startup-pro
 dotnet run --project src/DesignStore.Web
 ```
 
-Výchozí connection string používá `(localdb)\MSSQLLocalDB`. Pro jinou instanci nastavte `ConnectionStrings__DefaultConnection` přes environment variable nebo user secrets.
+Výchozí vývojový connection string používá pojmenovanou instanci `(localdb)\WildSpiritLocalDb` a databázi `WildSpiritDesignStore`. Instanci vytvoříte jednou příkazem `sqllocaldb create WildSpiritLocalDb 15.0 -s`. Pro jinou instanci nastavte `ConnectionStrings__DefaultConnection` přes environment variable nebo user secrets.
 
-Development seed se spouští idempotentně po aplikaci migrací a vytváří 7 kategorií, 20 produktů a role. Administrátor se nevytvoří bez secrets:
+Development seed se spouští idempotentně po aplikaci migrací a vytváří katalog, role a potvrzené lokální účty. Výchozí development administrátor:
+
+- e-mail: `admin@wildspirit.local`
+- heslo: `WildSpirit.Dev.Admin.2026!`
+
+Výchozí development zákazník pro ověření oprávnění:
+
+- e-mail: `customer@wildspirit.local`
+- heslo: `WildSpirit.Dev.Customer.2026!`
+
+Tyto veřejně známé účty jsou určené pouze pro lokální prostředí `Development`. Hodnoty lze přepsat přes user secrets:
 
 ```powershell
 dotnet user-secrets set "DevelopmentAdmin:Email" "admin@example.test" --project src/DesignStore.Web
 dotnet user-secrets set "DevelopmentAdmin:Password" "pouzijte-silne-vlastni-heslo" --project src/DesignStore.Web
 ```
+
+Přesné lokální adresy:
+
+- přihlášení: `http://localhost:5198/cs-CZ/Account/Login`
+- administrace: `http://localhost:5198/cs-CZ/Admin`
+
+Administrace vyžaduje příslušnou policy a některou z povolených rolí, například `Administrator` nebo `ContentManager`. Produkty, kategorie, kolekce, materiály a barvy lze spravovat odděleně; produktový editor obsahuje překlady, SEO, varianty, volby, materiály a upload obrázků.
+
+Obrázky se ukládají mimo `wwwroot` do adresáře nastaveného přes `FileStorage:RootPath`. Výchozí development cesta je `App_Data/storage`. Povolené jsou JPEG, PNG a WebP do 12 MB; server obsah dekóduje, odstraní metadata a vytvoří WebP hlavní obrázek a náhled. Tato cesta nemá být sdílená s adresářem zdrojových souborů ani obsluhována jako statické soubory.
 
 ## Testy
 
@@ -46,10 +65,10 @@ $env:DESIGNSTORE_TEST_CONNECTION='Server=localhost,1433;Database={database};User
 dotnet test DesignStore.slnx
 ```
 
-Pokud LocalDB hlásí chybu automatické instance, spusťte ji pomocí `sqllocaldb start MSSQLLocalDB`. V omezeném prostředí lze použít konkrétní named pipe vrácený příkazem `sqllocaldb info MSSQLLocalDB` přes stejnou proměnnou.
+Automatická instance `MSSQLLocalDB` se nepoužívá, protože její LocalDB API může v omezeném procesu selhat. Spusťte `sqllocaldb start WildSpiritLocalDb`. V sandboxovaném prostředí spusťte start, testy i aplikaci ve stejném uživatelském kontextu; přímá named pipe je pouze diagnostická nouzová cesta.
 
-## Rozsah Etapy 1
+## Rozsah po Etapě 2
 
-Tlačítka košíku a produktové poptávky na detailu pouze bezpečně komunikují budoucí akci a jsou deaktivovaná. Košík bude implementován v Etapě 3 a produktové poptávky v Etapě 4. Administrace je zatím pouze chráněný vstup; katalogová správa patří do Etapy 2.
+Katalogová administrace a konfigurace produktu jsou implementované. Tlačítka košíku a produktové poptávky na detailu stále pouze bezpečně komunikují budoucí akci a jsou deaktivovaná. Košík bude implementován až v Etapě 3 a produktové poptávky v Etapě 4.
 
 Podrobnosti jsou v [ARCHITECTURE.md](ARCHITECTURE.md), [DATA_MODEL.md](DATA_MODEL.md), [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) a [DECISIONS.md](DECISIONS.md).

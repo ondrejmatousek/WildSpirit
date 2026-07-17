@@ -1,0 +1,3 @@
+@model IReadOnlyList<AdminProductListItem>
+@{ViewData["Title"]="Produkty";}
+<div class="admin-heading"><div><p class="eyebrow">Katalog</p><h1>Produkty</h1></div><a class="button" asp-action="Create">Nový produkt</a></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Produkt</th><th>SKU</th><th>Cena</th><th>Dostupnost</th><th>Sklad</th><th>Publikace</th><th></th></tr></thead><tbody>@foreach(var p in Model){<tr><td><strong>@p.Name</strong>@if(p.HasVariants){<small>Varianty</small>}</td><td>@p.Sku</td><td>@p.Price.ToString("N0") Kč</td><td>@p.Availability</td><td>@p.StockQuantity</td><td>@(p.IsPublished?"Publikováno":"Koncept")</td><td><a asp-action="Edit" asp-route-id="@p.Id">Upravit</a></td></tr>}</tbody></table></div>

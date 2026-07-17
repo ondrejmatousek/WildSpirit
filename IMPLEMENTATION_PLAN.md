@@ -33,6 +33,8 @@ Testy: architektura, mapování EF, lokalizační fallback, veřejné routy, dos
 
 ## Etapa 2 – katalog a jeho administrace
 
+**Stav: dokončeno 16. 7. 2026.** Implementován rozšířený katalogový model, databázová migrace, administrační CRUD s explicitními DTO a validací, varianty a volby produktu, bezpečné ukládání obrázků s WebP deriváty, lokalizované SEO a historie slugů s trvalým přesměrováním.
+
 1. Dokončit produktový model: varianty, kolekce, materiály, barvy, volby, média a slug historii.
 2. Implementovat administraci katalogu s explicitními DTO a validátory.
 3. Přidat bezpečné lokální `IFileStorageService`, deriváty WebP/náhledy a validaci uploadu.

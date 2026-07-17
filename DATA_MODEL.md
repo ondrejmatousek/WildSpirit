@@ -1,6 +1,6 @@
 # Datový model DesignStore
 
-> Stav implementace po Etapě 1: fyzicky jsou vytvořeny Identity tabulky a první katalogový průřez `Category`, `CategoryTranslation`, `Product`, `ProductTranslation` a `ProductVariant`. Ostatní části tohoto dokumentu zůstávají cílovým návrhem dalších etap.
+> Stav implementace po Etapě 2: fyzicky jsou vytvořeny Identity tabulky a celý katalogový model popsaný v části 2, včetně variant, překladů, kolekcí, materiálů, barev, voleb, médií, souvisejících produktů a historie slugů. Části 3–9 zůstávají cílovým návrhem dalších etap.
 
 ## 1. Konvence
 

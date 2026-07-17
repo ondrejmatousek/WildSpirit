@@ -1,0 +1,3 @@
+@model IReadOnlyList<DesignStore.Application.Commerce.OrderListItem>
+@{ViewData["Title"]="Objednávky";}
+<h1>Objednávky</h1><table><thead><tr><th>Číslo</th><th>Zákazník</th><th>Stav</th><th>Platba</th><th>Celkem</th></tr></thead><tbody>@foreach(var o in Model){<tr><td><a asp-action="Detail" asp-route-id="@o.Id">@o.Number</a></td><td>@o.Email</td><td>@o.Status</td><td>@o.PaymentStatus</td><td>@o.Total.ToString("N0") @o.Currency</td></tr>}</tbody></table>

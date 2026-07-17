@@ -116,6 +116,24 @@ Formát: stručný ADR registr. Stav `Přijato` znamená výchozí rozhodnutí, 
 - Rozhodnutí: rychlé testy mohou používat lehčí prostředí, ale overselling, transakce a `rowversion` se testují proti SQL Serveru v integračním prostředí.
 - Důvod: in-memory/SQLite providery nemají shodnou transakční a konkurenční sémantiku.
 
+## ADR-020: Lokální privátní storage produktových obrázků
+
+- Stav: Přijato v Etapě 2
+- Rozhodnutí: uploady procházejí `IFileStorageService`, kontrolou MIME typu i skutečného obrazového obsahu, limitem velikosti a rozměrů. Metadata se odstraní a server vytváří náhodně pojmenovaný hlavní WebP a náhled mimo `wwwroot`; soubory se vydávají pouze přes řízený endpoint.
+- Důvod: zabránění path traversal, podvrženým souborům a přímému zpřístupnění originálu při zachování možnosti později vyměnit lokální implementaci za objektové úložiště.
+
+## ADR-021: ImageSharp 3.1 pro obrazové deriváty
+
+- Stav: Přijato v Etapě 2
+- Rozhodnutí: Etapa 2 používá SixLabors.ImageSharp řady 3.1. Řada 4 vyžaduje za běhu licenční klíč a bez obchodního rozhodnutí není vhodná pro výchozí lokální sestavení.
+- Důvod: deterministické lokální zpracování JPEG/PNG/WebP bez skryté provozní konfigurace. Produkční licenční a knihovní volba se znovu posoudí před nasazením.
+
+## ADR-022: Text katalogu je v Etapě 2 prostý text
+
+- Stav: Přijato v Etapě 2
+- Rozhodnutí: administrační popisy nepřijímají HTML; validátor odmítá znaky HTML tagů a Razor hodnoty standardně escapuje.
+- Důvod: omezení XSS plochy. Případný rich-text editor musí mít samostatnou sanitizační politiku v některé z dalších etap.
+
 ## Otevřená rozhodnutí před příslušnou etapou
 
 Následující volby nejsou nutné pro Etapu 0 a nesmí být domyšleny bez obchodních vstupů:

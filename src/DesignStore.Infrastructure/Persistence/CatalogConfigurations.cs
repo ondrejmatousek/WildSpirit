@@ -9,6 +9,7 @@ internal sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
     public void Configure(EntityTypeBuilder<Category> b)
     {
         b.Property(x => x.ImageUrl).HasMaxLength(500);
+        b.Property(x => x.BannerUrl).HasMaxLength(500);
         b.HasOne(x => x.ParentCategory).WithMany(x => x.Children).HasForeignKey(x => x.ParentCategoryId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => new { x.ParentCategoryId, x.DisplayOrder });
     }
@@ -22,6 +23,7 @@ internal sealed class CategoryTranslationConfiguration : IEntityTypeConfiguratio
         b.Property(x => x.Name).HasMaxLength(160);
         b.Property(x => x.Slug).HasMaxLength(180);
         b.Property(x => x.ShortDescription).HasMaxLength(500);
+        b.Property(x => x.LongDescription).HasMaxLength(8000);
         b.Property(x => x.SeoTitle).HasMaxLength(70);
         b.Property(x => x.SeoDescription).HasMaxLength(170);
         b.HasIndex(x => new { x.CategoryId, x.Culture }).IsUnique();
@@ -42,6 +44,7 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         b.HasIndex(x => x.Sku).IsUnique();
         b.HasIndex(x => new { x.IsPublished, x.AvailabilityStatus, x.DisplayOrder });
         b.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Collection).WithMany(x => x.Products).HasForeignKey(x => x.CollectionId).OnDelete(DeleteBehavior.SetNull);
     }
 }
 
@@ -55,6 +58,8 @@ internal sealed class ProductTranslationConfiguration : IEntityTypeConfiguration
         b.Property(x => x.ShortDescription).HasMaxLength(500);
         b.Property(x => x.SeoTitle).HasMaxLength(70);
         b.Property(x => x.SeoDescription).HasMaxLength(170);
+        b.Property(x => x.OpenGraphTitle).HasMaxLength(100);
+        b.Property(x => x.OpenGraphDescription).HasMaxLength(300);
         b.HasIndex(x => new { x.ProductId, x.Culture }).IsUnique();
         b.HasIndex(x => new { x.Culture, x.Slug }).IsUnique();
     }
