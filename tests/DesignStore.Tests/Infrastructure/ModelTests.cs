@@ -8,7 +8,7 @@ namespace DesignStore.Tests.Infrastructure;
 public sealed class ModelTests
 {
     private static ApplicationDbContext CreateDb() => new(new DbContextOptionsBuilder<ApplicationDbContext>()
-        .UseSqlServer("Server=(localdb)\\WildSpiritLocalDb;Database=ModelMetadataOnly;Trusted_Connection=True;TrustServerCertificate=True").Options);
+        .UseSqlServer("Server=.\\SQLEXPRESS;Database=ModelMetadataOnly;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False").Options);
 
     [Fact]
     public void Model_contains_catalog_and_identity_with_concurrency_tokens()

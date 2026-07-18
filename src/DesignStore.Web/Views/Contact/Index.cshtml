@@ -1,0 +1,51 @@
+@model DesignStore.Application.Marketing.ContactRequest
+
+@{
+    ViewData["Title"] = "Kontakt";
+}
+
+<main class="editorial-page contact-page">
+    <section class="editorial-heading">
+        <p class="eyebrow">Ateliér · Morava</p>
+        <h1>Kontakt</h1>
+        <p>Napište nám k výrobku, zakázce nebo spolupráci. Ozveme se s klidem a konkrétně.</p>
+    </section>
+
+    @if (TempData["ContactSent"] is string message)
+    {
+        <div class="notice">@message</div>
+    }
+
+    <form class="editorial-form" asp-action="Index" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+        <label>
+            Jméno
+            <input asp-for="FullName" autocomplete="name" />
+        </label>
+
+        <label>
+            E-mail
+            <input asp-for="Email" type="email" autocomplete="email" required />
+            <span asp-validation-for="Email"></span>
+        </label>
+
+        <label>
+            Předmět
+            <input asp-for="Subject" />
+        </label>
+
+        <label>
+            Zpráva
+            <textarea asp-for="Message" rows="7" required></textarea>
+            <span asp-validation-for="Message"></span>
+        </label>
+
+        <button class="btn-primary" type="submit">Odeslat zprávu</button>
+    </form>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

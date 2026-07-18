@@ -3,6 +3,8 @@ using DesignStore.Domain.Catalog;
 using DesignStore.Infrastructure.Persistence;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 
 namespace DesignStore.Infrastructure.Catalog;
 
@@ -12,6 +14,21 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
     public async Task<IReadOnlyList<AdminProductListItem>> GetProductsAsync(CancellationToken ct) => await db.Products.AsNoTracking()
         .OrderBy(p => p.DisplayOrder).ThenBy(p => p.Sku)
         .Select(p => new AdminProductListItem(p.Id, p.Sku, p.Translations.Where(t => t.Culture == "cs-CZ").Select(t => t.Name).FirstOrDefault() ?? p.Translations.Select(t => t.Name).First(), p.BasePrice, p.AvailabilityStatus, p.IsPublished, p.StockQuantity, p.HasVariants)).ToListAsync(ct);
+
+    public async Task<string> GetNextProductSkuAsync(CancellationToken ct)
+    {
+        var skus = await db.Products.AsNoTracking().Select(x => x.Sku).ToListAsync(ct);
+        var max = skus.Select(SequenceFromSku).DefaultIfEmpty(0).Max();
+        var candidate = max + 1;
+        string sku;
+        do
+        {
+            sku = $"WS-{candidate:000000}";
+            candidate++;
+        }
+        while (await db.Products.AnyAsync(x => x.Sku == sku, ct) || await db.ProductVariants.AnyAsync(x => x.Sku == sku, ct));
+        return sku;
+    }
 
     public async Task<EditProductRequest?> GetProductAsync(Guid id, CancellationToken ct)
     {
@@ -27,12 +44,15 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
             HasVariants = p.HasVariants, DisplayOrder = p.DisplayOrder, MaterialIds = p.ProductMaterials.Select(x => x.MaterialId).ToList(),
             Translations = p.Translations.OrderBy(t => t.Culture).Select(t => new ProductTranslationInput { Culture=t.Culture, Name=t.Name, Slug=t.Slug, ShortDescription=t.ShortDescription, LongDescription=t.LongDescription, Story=t.Story, Materials=t.Materials, Dimensions=t.Dimensions, CareInstructions=t.CareInstructions, ShippingInformation=t.ShippingInformation, SeoTitle=t.SeoTitle, SeoDescription=t.SeoDescription, OpenGraphTitle=t.OpenGraphTitle, OpenGraphDescription=t.OpenGraphDescription }).ToList(),
             Variants = p.Variants.OrderBy(v => v.Sku).Select(v => new ProductVariantInput { Id=v.Id, Sku=v.Sku, Name=v.Translations.FirstOrDefault(t=>t.Culture=="cs-CZ")?.Name??v.Name, NameEn=v.Translations.FirstOrDefault(t=>t.Culture=="en")?.Name??string.Empty, NameDe=v.Translations.FirstOrDefault(t=>t.Culture=="de")?.Name??string.Empty, Price=v.Price, AvailabilityStatus=v.AvailabilityStatus, StockQuantity=v.StockQuantity, CanBeMadeToOrder=v.CanBeMadeToOrder, EstimatedProductionDays=v.EstimatedProductionDays }).ToList(),
-            Options = p.Options.OrderBy(o => o.DisplayOrder).Select(o => new ProductOptionInput { Id=o.Id, Name=o.Translations.FirstOrDefault(t=>t.Culture=="cs-CZ")?.Name ?? o.Translations.First().Name, Type=o.Type, IsRequired=o.IsRequired, MaximumTextLength=o.MaximumTextLength, Values=o.Values.OrderBy(v=>v.DisplayOrder).Select(v=>new ProductOptionValueInput { Id=v.Id, Name=v.Translations.FirstOrDefault(t=>t.Culture=="cs-CZ")?.Name ?? v.Translations.First().Name, PriceAdjustment=v.PriceAdjustment, AdditionalProductionDays=v.AdditionalProductionDays, IsActive=v.IsActive }).ToList() }).ToList()
+            Options = p.Options.OrderBy(o => o.DisplayOrder).Select(o => new ProductOptionInput { Id=o.Id, Name=o.Translations.FirstOrDefault(t=>t.Culture=="cs-CZ")?.Name ?? o.Translations.First().Name, Type=o.Type, IsRequired=o.IsRequired, MaximumTextLength=o.MaximumTextLength, Values=o.Values.OrderBy(v=>v.DisplayOrder).Select(v=>new ProductOptionValueInput { Id=v.Id, Name=v.Translations.FirstOrDefault(t=>t.Culture=="cs-CZ")?.Name ?? v.Translations.First().Name, PriceAdjustment=v.PriceAdjustment, AdditionalProductionDays=v.AdditionalProductionDays, IsActive=v.IsActive }).ToList() }).ToList(),
+            Images = p.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.DisplayOrder).Select(i => new ProductImageAdminItem(i.Id,$"/media/product/{i.Id}",$"/media/product/{i.Id}?thumbnail=true",i.AltText,i.IsPrimary,i.DisplayOrder,i.Width,i.Height)).ToList()
         };
     }
 
     public async Task<Guid> SaveProductAsync(EditProductRequest request, string? actor, CancellationToken ct)
     {
+        NormalizeProductRequest(request);
+        NormalizeProductSlugs(request);
         await productValidator.ValidateAndThrowAsync(request, ct);
         var sku = request.Sku.Trim().ToUpperInvariant();
         if (await db.Products.AnyAsync(p => p.Sku == sku && p.Id != request.Id, ct) ||
@@ -69,10 +89,15 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
         c.Translations.RemoveAll(x=>request.Translations.All(t=>t.Culture!=x.Culture)); foreach(var input in request.Translations){var t=c.Translations.FirstOrDefault(x=>x.Culture==input.Culture);if(t is null){t=new CategoryTranslation{Culture=input.Culture,CreatedBy=actor};c.Translations.Add(t);}t.Name=input.Name;t.Slug=input.Slug;t.ShortDescription=input.ShortDescription;t.LongDescription=input.LongDescription;t.SeoTitle=input.SeoTitle;t.SeoDescription=input.SeoDescription;t.UpdatedAtUtc=DateTime.UtcNow;t.UpdatedBy=actor;} await db.SaveChangesAsync(ct);return c.Id;
     }
 
-    public Task<IReadOnlyList<AdminLookup>> GetCollectionsAsync(CancellationToken ct) => Lookups(db.Collections.AsNoTracking().Select(x=>new AdminLookup(x.Id,x.Translations.Where(t=>t.Culture=="cs-CZ").Select(t=>t.Name).FirstOrDefault()??x.Translations.Select(t=>t.Name).First())),ct);
-    public Task<IReadOnlyList<AdminLookup>> GetMaterialsAsync(CancellationToken ct) => Lookups(db.Materials.AsNoTracking().Select(x=>new AdminLookup(x.Id,x.Translations.Where(t=>t.Culture=="cs-CZ").Select(t=>t.Name).FirstOrDefault()??x.Translations.Select(t=>t.Name).First())),ct);
-    public Task<IReadOnlyList<AdminLookup>> GetColorsAsync(CancellationToken ct) => Lookups(db.Colors.AsNoTracking().Select(x=>new AdminLookup(x.Id,x.Translations.Where(t=>t.Culture=="cs-CZ").Select(t=>t.Name).FirstOrDefault()??x.Translations.Select(t=>t.Name).First())),ct);
-    private static async Task<IReadOnlyList<AdminLookup>> Lookups(IQueryable<AdminLookup> query,CancellationToken ct)=>await query.OrderBy(x=>x.Name).ToListAsync(ct);
+    public async Task<IReadOnlyList<AdminLookup>> GetCollectionsAsync(CancellationToken ct) => await db.Collections.AsNoTracking()
+        .Select(x=>new { x.Id, Name=x.Translations.Where(t=>t.Culture=="cs-CZ").Select(t=>t.Name).FirstOrDefault()??x.Translations.Select(t=>t.Name).First() })
+        .OrderBy(x=>x.Name).Select(x=>new AdminLookup(x.Id,x.Name)).ToListAsync(ct);
+    public async Task<IReadOnlyList<AdminLookup>> GetMaterialsAsync(CancellationToken ct) => await db.Materials.AsNoTracking()
+        .Select(x=>new { x.Id, Name=x.Translations.Where(t=>t.Culture=="cs-CZ").Select(t=>t.Name).FirstOrDefault()??x.Translations.Select(t=>t.Name).First() })
+        .OrderBy(x=>x.Name).Select(x=>new AdminLookup(x.Id,x.Name)).ToListAsync(ct);
+    public async Task<IReadOnlyList<AdminLookup>> GetColorsAsync(CancellationToken ct) => await db.Colors.AsNoTracking()
+        .Select(x=>new { x.Id, Name=x.Translations.Where(t=>t.Culture=="cs-CZ").Select(t=>t.Name).FirstOrDefault()??x.Translations.Select(t=>t.Name).First() })
+        .OrderBy(x=>x.Name).Select(x=>new AdminLookup(x.Id,x.Name)).ToListAsync(ct);
 
     public async Task<Guid> SaveReferenceAsync(ReferenceItemRequest r,string? actor,CancellationToken ct)
     {
@@ -83,12 +108,140 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
     }
     public async Task<Guid> AddProductImageAsync(Guid productId, DesignStore.Application.Abstractions.Files.StoredImage image,string altText,bool isPrimary,string? actor,CancellationToken ct)
     {
-        var product=await db.Products.Include(x=>x.Images).FirstOrDefaultAsync(x=>x.Id==productId,ct)??throw new KeyNotFoundException();if(isPrimary)foreach(var existing in product.Images)existing.IsPrimary=false;var entity=new ProductImage{Product=product,StorageKey=image.StorageKey,ThumbnailStorageKey=image.ThumbnailStorageKey,ContentType=image.ContentType,Width=image.Width,Height=image.Height,AltText=altText,IsPrimary=isPrimary,DisplayOrder=product.Images.Count,CreatedBy=actor};product.Images.Add(entity);product.MainImageUrl=$"/media/product/{entity.Id}";await db.SaveChangesAsync(ct);return entity.Id;
+        if(!await db.Products.AsNoTracking().AnyAsync(x=>x.Id==productId,ct))throw new KeyNotFoundException();
+        if(isPrimary)await db.ProductImages.Where(x=>x.ProductId==productId&&x.IsPrimary).ExecuteUpdateAsync(x=>x.SetProperty(i=>i.IsPrimary,false).SetProperty(i=>i.UpdatedAtUtc,DateTime.UtcNow).SetProperty(i=>i.UpdatedBy,actor),ct);
+        var displayOrder=await db.ProductImages.AsNoTracking().Where(x=>x.ProductId==productId).CountAsync(ct);
+        var entity=new ProductImage{ProductId=productId,StorageKey=image.StorageKey,ThumbnailStorageKey=image.ThumbnailStorageKey,ContentType=image.ContentType,Width=image.Width,Height=image.Height,AltText=altText,IsPrimary=isPrimary,DisplayOrder=displayOrder,CreatedBy=actor};
+        db.ProductImages.Add(entity);
+        await db.SaveChangesAsync(ct);
+        if(isPrimary||!await db.Products.AsNoTracking().AnyAsync(x=>x.Id==productId&&x.MainImageUrl!="",ct))await db.Products.Where(x=>x.Id==productId).ExecuteUpdateAsync(x=>x.SetProperty(p=>p.MainImageUrl,$"/media/product/{entity.Id}").SetProperty(p=>p.UpdatedAtUtc,DateTime.UtcNow).SetProperty(p=>p.UpdatedBy,actor),ct);
+        return entity.Id;
     }
     public async Task<ProductImageFile?> GetProductImageAsync(Guid imageId,bool thumbnail,CancellationToken ct)=>await db.ProductImages.AsNoTracking().Where(x=>x.Id==imageId).Select(x=>new ProductImageFile(thumbnail?x.ThumbnailStorageKey:x.StorageKey,x.ContentType)).FirstOrDefaultAsync(ct);
 
     private static IEnumerable<(string Culture,string Name)> Names(ReferenceItemRequest r){yield return("cs-CZ",r.Name);if(!string.IsNullOrWhiteSpace(r.NameEn))yield return("en",r.NameEn);if(!string.IsNullOrWhiteSpace(r.NameDe))yield return("de",r.NameDe);}
-    private IQueryable<Product> ProductAggregate()=>db.Products.Include(x=>x.Translations).Include(x=>x.Variants).ThenInclude(x=>x.Translations).Include(x=>x.ProductMaterials).Include(x=>x.Options).ThenInclude(x=>x.Translations).Include(x=>x.Options).ThenInclude(x=>x.Values).ThenInclude(x=>x.Translations).Include(x=>x.SlugHistory).AsSplitQuery();
+    private static void NormalizeProductRequest(EditProductRequest request)
+    {
+        request.Sku = request.Sku?.Trim() ?? string.Empty;
+        request.MaterialIds ??= [];
+        request.Translations ??= [];
+        request.Variants ??= [];
+        request.Options ??= [];
+
+        foreach (var translation in request.Translations) NormalizeTranslation(translation);
+        request.Translations = request.Translations
+            .Where(x => x.Culture == "cs-CZ" || HasTranslationContent(x))
+            .ToList();
+
+        if (!request.HasVariants) request.Variants = [];
+        else request.Variants = request.Variants.Where(HasVariantContent).ToList();
+        foreach (var variant in request.Variants) NormalizeVariant(variant);
+
+        foreach (var option in request.Options)
+        {
+            option.Name = option.Name?.Trim() ?? string.Empty;
+            option.Values ??= [];
+            option.Values = option.Values.Where(HasOptionValueContent).ToList();
+            foreach (var value in option.Values) value.Name = value.Name?.Trim() ?? string.Empty;
+        }
+        request.Options = request.Options.Where(HasOptionContent).ToList();
+    }
+    private static void NormalizeTranslation(ProductTranslationInput translation)
+    {
+        translation.Culture = translation.Culture?.Trim() ?? string.Empty;
+        translation.Name = translation.Name?.Trim() ?? string.Empty;
+        translation.Slug = translation.Slug?.Trim() ?? string.Empty;
+        translation.ShortDescription = translation.ShortDescription?.Trim() ?? string.Empty;
+        translation.LongDescription = translation.LongDescription?.Trim() ?? string.Empty;
+        translation.Story = translation.Story?.Trim() ?? string.Empty;
+        translation.Materials = translation.Materials?.Trim() ?? string.Empty;
+        translation.Dimensions = translation.Dimensions?.Trim() ?? string.Empty;
+        translation.CareInstructions = translation.CareInstructions?.Trim() ?? string.Empty;
+        translation.ShippingInformation = translation.ShippingInformation?.Trim() ?? string.Empty;
+        translation.SeoTitle = translation.SeoTitle?.Trim() ?? string.Empty;
+        translation.SeoDescription = translation.SeoDescription?.Trim() ?? string.Empty;
+        translation.OpenGraphTitle = translation.OpenGraphTitle?.Trim() ?? string.Empty;
+        translation.OpenGraphDescription = translation.OpenGraphDescription?.Trim() ?? string.Empty;
+    }
+    private static void NormalizeVariant(ProductVariantInput variant)
+    {
+        variant.Sku = variant.Sku?.Trim() ?? string.Empty;
+        variant.Name = variant.Name?.Trim() ?? string.Empty;
+        variant.NameEn = variant.NameEn?.Trim() ?? string.Empty;
+        variant.NameDe = variant.NameDe?.Trim() ?? string.Empty;
+    }
+    private static bool HasVariantContent(ProductVariantInput variant) =>
+        variant.Id.HasValue ||
+        !string.IsNullOrWhiteSpace(variant.Sku) ||
+        !string.IsNullOrWhiteSpace(variant.Name) ||
+        !string.IsNullOrWhiteSpace(variant.NameEn) ||
+        !string.IsNullOrWhiteSpace(variant.NameDe) ||
+        (variant.Price.HasValue && variant.Price.Value != 0) ||
+        variant.StockQuantity != 0 ||
+        variant.CanBeMadeToOrder ||
+        variant.EstimatedProductionDays.HasValue;
+    private static bool HasOptionContent(ProductOptionInput option) =>
+        option.Id.HasValue ||
+        !string.IsNullOrWhiteSpace(option.Name) ||
+        option.IsRequired ||
+        option.MaximumTextLength.HasValue ||
+        option.Values.Any(HasOptionValueContent);
+    private static bool HasOptionValueContent(ProductOptionValueInput value) =>
+        value.Id.HasValue ||
+        !string.IsNullOrWhiteSpace(value.Name) ||
+        value.PriceAdjustment != 0 ||
+        value.AdditionalProductionDays != 0;
+    private static bool HasTranslationContent(ProductTranslationInput translation) =>
+        !string.IsNullOrWhiteSpace(translation.Name) ||
+        !string.IsNullOrWhiteSpace(translation.Slug) ||
+        !string.IsNullOrWhiteSpace(translation.ShortDescription) ||
+        !string.IsNullOrWhiteSpace(translation.LongDescription) ||
+        !string.IsNullOrWhiteSpace(translation.Story) ||
+        !string.IsNullOrWhiteSpace(translation.Materials) ||
+        !string.IsNullOrWhiteSpace(translation.Dimensions) ||
+        !string.IsNullOrWhiteSpace(translation.CareInstructions) ||
+        !string.IsNullOrWhiteSpace(translation.ShippingInformation) ||
+        !string.IsNullOrWhiteSpace(translation.SeoTitle) ||
+        !string.IsNullOrWhiteSpace(translation.SeoDescription) ||
+        !string.IsNullOrWhiteSpace(translation.OpenGraphTitle) ||
+        !string.IsNullOrWhiteSpace(translation.OpenGraphDescription);
+    private static void NormalizeProductSlugs(EditProductRequest request)
+    {
+        foreach (var translation in request.Translations)
+        {
+            var source = string.IsNullOrWhiteSpace(translation.Slug) ? translation.Name : translation.Slug;
+            translation.Slug = ToSlug(source);
+        }
+    }
+    private static string ToSlug(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var normalized = value.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalized.Length);
+        var previousDash = false;
+        foreach (var ch in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.NonSpacingMark) continue;
+            if (ch is >= 'a' and <= 'z' or >= '0' and <= '9')
+            {
+                sb.Append(ch);
+                previousDash = false;
+            }
+            else if (!previousDash)
+            {
+                sb.Append('-');
+                previousDash = true;
+            }
+        }
+        return sb.ToString().Trim('-');
+    }
+    private static int SequenceFromSku(string sku)
+    {
+        const string prefix = "WS-";
+        if (!sku.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return 0;
+        return int.TryParse(sku[prefix.Length..], out var value) ? value : 0;
+    }
+    private IQueryable<Product> ProductAggregate()=>db.Products.Include(x=>x.Translations).Include(x=>x.Variants).ThenInclude(x=>x.Translations).Include(x=>x.ProductMaterials).Include(x=>x.Images).Include(x=>x.Options).ThenInclude(x=>x.Translations).Include(x=>x.Options).ThenInclude(x=>x.Values).ThenInclude(x=>x.Translations).Include(x=>x.SlugHistory).AsSplitQuery();
     private void SyncTranslations(Product p,List<ProductTranslationInput> inputs,string? actor){p.Translations.RemoveAll(x=>inputs.All(i=>i.Culture!=x.Culture));foreach(var i in inputs){var t=p.Translations.FirstOrDefault(x=>x.Culture==i.Culture);if(t is null){t=new ProductTranslation{Culture=i.Culture,CreatedBy=actor};p.Translations.Add(t);}else if(t.Slug!=i.Slug&&!string.IsNullOrWhiteSpace(t.Slug)){var history=new ProductSlugHistory{Product=p,Culture=t.Culture,OldSlug=t.Slug,CreatedBy=actor};p.SlugHistory.Add(history);db.ProductSlugHistories.Add(history);}t.Name=i.Name;t.Slug=i.Slug;t.ShortDescription=i.ShortDescription;t.LongDescription=i.LongDescription;t.Story=i.Story;t.Materials=i.Materials;t.Dimensions=i.Dimensions;t.CareInstructions=i.CareInstructions;t.ShippingInformation=i.ShippingInformation;t.SeoTitle=i.SeoTitle;t.SeoDescription=i.SeoDescription;t.OpenGraphTitle=i.OpenGraphTitle;t.OpenGraphDescription=i.OpenGraphDescription;t.UpdatedAtUtc=DateTime.UtcNow;t.UpdatedBy=actor;}}
     private static void SyncVariants(Product p,List<ProductVariantInput> inputs,bool enabled,string? actor){if(!enabled){p.Variants.Clear();return;}p.Variants.RemoveAll(x=>inputs.All(i=>i.Id!=x.Id));foreach(var i in inputs){var v=i.Id.HasValue?p.Variants.FirstOrDefault(x=>x.Id==i.Id):null;if(v is null){v=new ProductVariant{CreatedBy=actor};p.Variants.Add(v);}v.Sku=i.Sku.Trim().ToUpperInvariant();v.Name=i.Name;v.Price=i.Price;v.AvailabilityStatus=i.AvailabilityStatus;v.StockQuantity=i.StockQuantity;v.CanBeMadeToOrder=i.CanBeMadeToOrder;v.EstimatedProductionDays=i.EstimatedProductionDays;v.UpdatedAtUtc=DateTime.UtcNow;v.UpdatedBy=actor;SetVariantName(v,"cs-CZ",i.Name);if(!string.IsNullOrWhiteSpace(i.NameEn))SetVariantName(v,"en",i.NameEn);if(!string.IsNullOrWhiteSpace(i.NameDe))SetVariantName(v,"de",i.NameDe);}}
     private static void SetVariantName(ProductVariant v,string culture,string name){var t=v.Translations.FirstOrDefault(x=>x.Culture==culture);if(t is null){t=new ProductVariantTranslation{Culture=culture};v.Translations.Add(t);}t.Name=name;}

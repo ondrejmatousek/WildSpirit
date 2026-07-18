@@ -1,5 +1,6 @@
 using DesignStore.Domain.Catalog;
 using DesignStore.Domain.Commerce;
+using DesignStore.Domain.Marketing;
 using DesignStore.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -30,6 +31,13 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Order> Orders => Set<Order>(); public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>(); public DbSet<DiscountCode> DiscountCodes => Set<DiscountCode>(); public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>(); public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ProductInquiry> ProductInquiries => Set<ProductInquiry>(); public DbSet<ProductInquiryConfigurationItem> ProductInquiryConfigurationItems => Set<ProductInquiryConfigurationItem>(); public DbSet<ProductInquiryAttachment> ProductInquiryAttachments => Set<ProductInquiryAttachment>(); public DbSet<ProductInquiryStatusHistory> ProductInquiryStatusHistories => Set<ProductInquiryStatusHistory>(); public DbSet<ProductInquiryNote> ProductInquiryNotes => Set<ProductInquiryNote>();
+    public DbSet<Quote> Quotes => Set<Quote>(); public DbSet<QuoteItem> QuoteItems => Set<QuoteItem>(); public DbSet<QuoteStatusHistory> QuoteStatusHistories => Set<QuoteStatusHistory>(); public DbSet<QuoteAccessToken> QuoteAccessTokens => Set<QuoteAccessToken>();
+    public DbSet<ProductionJob> ProductionJobs => Set<ProductionJob>(); public DbSet<ProductionJobStatusHistory> ProductionJobStatusHistories => Set<ProductionJobStatusHistory>(); public DbSet<ProductionJobAttachment> ProductionJobAttachments => Set<ProductionJobAttachment>(); public DbSet<ProductionJobNote> ProductionJobNotes => Set<ProductionJobNote>();
+    public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>(); public DbSet<FavoriteProduct> FavoriteProducts => Set<FavoriteProduct>();
+    public DbSet<ContentPage> ContentPages => Set<ContentPage>(); public DbSet<ContentPageTranslation> ContentPageTranslations => Set<ContentPageTranslation>();
+    public DbSet<GalleryItem> GalleryItems => Set<GalleryItem>(); public DbSet<GalleryItemTranslation> GalleryItemTranslations => Set<GalleryItemTranslation>();
+    public DbSet<Review> Reviews => Set<Review>(); public DbSet<NewsletterSubscription> NewsletterSubscriptions => Set<NewsletterSubscription>(); public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

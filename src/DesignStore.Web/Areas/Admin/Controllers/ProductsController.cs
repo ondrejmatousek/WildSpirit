@@ -10,7 +10,7 @@ namespace DesignStore.Web.Areas.Admin.Controllers;
 public sealed class ProductsController(ICatalogAdminService catalog) : Controller
 {
     public async Task<IActionResult> Index(CancellationToken ct)=>View(await catalog.GetProductsAsync(ct));
-    public async Task<IActionResult> Create(CancellationToken ct){var model=new EditProductRequest{Translations=[Translation("cs-CZ"),Translation("en"),Translation("de")]};await Lookups(ct);return View("Edit",model);}
+    public async Task<IActionResult> Create(CancellationToken ct){var model=new EditProductRequest{Sku=await catalog.GetNextProductSkuAsync(ct),Translations=[Translation("cs-CZ"),Translation("en"),Translation("de")]};await Lookups(ct);return View("Edit",model);}
     public async Task<IActionResult> Edit(Guid id,CancellationToken ct){var model=await catalog.GetProductAsync(id,ct);if(model is null)return NotFound();EnsureCultures(model);await Lookups(ct);return View(model);}
     [HttpPost,ValidateAntiForgeryToken]
     public async Task<IActionResult> Save(EditProductRequest model,CancellationToken ct)

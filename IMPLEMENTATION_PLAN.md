@@ -82,6 +82,10 @@ Akceptace: zákazník vidí jen vlastní data a pouze zákaznicky viditelné vý
 
 Testy: stavový automat výroby, ownership authorization, přístup k souborům a oblíbené.
 
+## Stav Etapy 5
+
+**Základní implementace dokončena 17. 7. 2026.** Přidány výrobní zakázky se stavovým automatem a historií, zákaznické adresy, oblíbené produkty, vlastnické dotazy účtu a administrační endpoint výroby. Bezpečné přílohy a zákaznické poznámky jsou omezené na zákaznicky viditelné záznamy. SQL integrační ověření běží proti lokální instanci `.\SQLEXPRESS`.
+
 ## Etapa 6 – obsah a marketing
 
 1. Realizace, galerie, recenze a lokalizované obsahové stránky.
@@ -127,3 +131,20 @@ Akceptace: čistý restore/build/test, žádné secrets v repozitáři, zdravý 
 - Po Etapě 3: zátěžově ověřit poslední kus a rozhodnout okamžik rezervace.
 - Po Etapě 4: právně/obchodně schválit text nezávaznosti, nabídky a expirace.
 - Před produkcí: potvrdit platební bránu, dopravce, daňové země, retence a provozní infrastrukturu.
+
+## Stav po Etapě 3
+
+Etapa 3 dokončena 17. 7. 2026: košík, serverové přecenění, slevy, checkout, adresy, doprava, platby, objednávkové snapshoty, stavová historie, transakční sklad, storno s jednorázovým vrácením a outbox potvrzení. Etapa 4 nebyla zahájena.
+## Průběžný stav Etapy 4
+
+Základní workflow poptávek a verzovaných nabídek je implementováno včetně snapshotu katalogových údajů, stavové historie, hashovaných časově omezených tokenů, zákaznické odpovědi a transakčního převodu přijaté nabídky na objednávku. Zbývá doplnit produkční upload příloh, plnohodnotné administrační formuláře a rozšířené integrační testy; Etapa 4 proto zatím není uzavřena.
+## Stav Etapy 4
+
+**Implementace dokončena 17. 7. 2026.** Poptávky, immutable snapshoty, konfigurace, přílohy, stavové historie, nabídky s verzemi, hashované tokeny, expirace, zákaznické odpovědi, administrační endpointy a transakční převod na objednávku jsou součástí řešení. SQL integrační ověření běží proti lokální instanci `.\SQLEXPRESS`.
+ 
+## Stav Etapy 6
+
+**Implementace dokončena 18. 7. 2026.** Přidány marketingové entity a EF migrace `Stage6MarketingContent`: lokalizované obsahové stránky, galerie, recenze, newsletter double opt-in s hashovanými tokeny, odhlášení, CSV export potvrzených odběratelů, samostatný kontaktní formulář s hodinovým rate limitingem podle e-mailu/IP hashe, outbox notifikace, `robots.txt` a `sitemap.xml`. Obecný kontakt zůstává oddělený od produktových poptávek. Ověření běží proti lokální instanci `.\SQLEXPRESS`.
+## Stav Etapy 7
+
+**Implementace dokončena 18. 7. 2026.** Doplněny bezpečnostní HTTP hlavičky, produkční CSP, response compression, health endpoint `/health`, cookie consent banner bez automatického spouštění marketingových skriptů, zákaznický export osobních údajů, žádost o zrušení účtu přes outbox s ruční retenční kontrolou, Dockerfile, Compose se SQL Serverem, `.dockerignore`, `SECURITY.md` a statické/regresní testy. Produkční smazání/anonymizace zůstává řízený ruční proces kvůli účetním a zákonným retenčním povinnostem.

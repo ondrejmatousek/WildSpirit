@@ -1,6 +1,7 @@
 using DesignStore.Web.Areas.Admin.Controllers;
 using DesignStore.Web.Controllers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DesignStore.Tests.Web;
@@ -27,6 +28,17 @@ public sealed class RouteAndAuthorizationTests
     [Fact] public void Product_administration_requires_catalog_policy(){var authorize=Assert.Single(typeof(ProductsController).GetCustomAttributes(typeof(AuthorizeAttribute),true).Cast<AuthorizeAttribute>());Assert.Equal("CatalogManage",authorize.Policy);}
 
     [Fact]
+    public void Media_upload_accepts_multiple_files_and_requires_catalog_policy()
+    {
+        var authorize = Assert.Single(typeof(DesignStore.Web.Areas.Admin.Controllers.MediaController).GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>());
+        Assert.Equal("CatalogManage", authorize.Policy);
+
+        var upload = typeof(DesignStore.Web.Areas.Admin.Controllers.MediaController).GetMethod(nameof(DesignStore.Web.Areas.Admin.Controllers.MediaController.Upload))!;
+        Assert.Single(upload.GetCustomAttributes(typeof(HttpPostAttribute), true));
+        Assert.Contains(upload.GetParameters(), p => p.Name == "files" && p.ParameterType == typeof(List<IFormFile>));
+    }
+
+    [Fact]
     public void Account_page_and_logout_require_authenticated_user()
     {
         var account = typeof(AccountController).GetMethod(nameof(AccountController.Index))!;
@@ -36,5 +48,18 @@ public sealed class RouteAndAuthorizationTests
         Assert.Single(logout.GetCustomAttributes(typeof(AuthorizeAttribute), true));
         Assert.Empty(typeof(AccountController).GetMethod(nameof(AccountController.Login), [typeof(string)])!
             .GetCustomAttributes(typeof(AuthorizeAttribute), true));
+    }
+
+    [Fact]
+    public void Privacy_export_and_deletion_require_authenticated_user()
+    {
+        var export = typeof(PrivacyController).GetMethod(nameof(PrivacyController.Export))!;
+        var deletion = typeof(PrivacyController).GetMethod(nameof(PrivacyController.RequestDeletion))!;
+        var consent = typeof(PrivacyController).GetMethod(nameof(PrivacyController.CookieConsent))!;
+
+        Assert.Single(export.GetCustomAttributes(typeof(AuthorizeAttribute), true));
+        Assert.Single(deletion.GetCustomAttributes(typeof(AuthorizeAttribute), true));
+        Assert.Single(consent.GetCustomAttributes(typeof(AllowAnonymousAttribute), true));
+        Assert.Single(deletion.GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute), true));
     }
 }

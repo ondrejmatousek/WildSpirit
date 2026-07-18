@@ -109,6 +109,7 @@ Stav výroby není odvozován pouze ze stavu objednávky; propojení je explicit
 - `ApplicationUser`: Identity účet, preferovaná kultura/měna a stav účtu; osobní profil jen v nezbytném rozsahu.
 - `CustomerAddress`: uživatelský adresář, nikoli historická objednávková adresa.
 - `FavoriteProduct`: unikátní `(UserId, ProductId)`.
+- Etapa 5 doplňuje `ProductionJob`, stavovou historii, bezpečné přílohy a poznámky s příznakem viditelnosti, dále `CustomerAddress` a `FavoriteProduct` s unikátním vlastnickým indexem.
 - `ConsentRecord`: subjekt nebo pseudonymní identifikátor, typ, verze textu, udělení/odvolání, čas, kultura a minimalizované technické důkazy.
 
 ## 8. Obsah
@@ -162,3 +163,22 @@ Order 1--* ProductionJob
 - Produkty použité v historii se archivují/unpublish; FK je `Restrict`.
 - Média lze odstranit až po ověření referencí a retenčních pravidel.
 - Osobní údaje se po zákonných lhůtách anonymizují tam, kde účetní povinnosti nevyžadují uchování.
+
+## Stav po Etapě 3
+
+Datový model nyní obsahuje košíky, konfigurace položek, objednávkové snapshoty, adresy, platby, dopravu, skladové pohyby, historii stavů a transakční outbox. Části 4–9 zůstávají mimo rozsah.
+## Stav po Etapě 4 (průběžně)
+
+Přidány entity `ProductInquiry`, `Quote`, jejich položky, snapshoty, stavové historie a hashované přístupové tokeny. Přílohy jsou připravené v modelu; bezpečný upload a kompletní administrační UI zůstávají k dokončení před uzavřením etapy.
+ 
+## Stav po Etapě 6
+
+Datový model nyní obsahuje marketingový obsah:
+
+- `ContentPage` a `ContentPageTranslation` pro publikované lokalizované stránky se slugem, titulkem, souhrnem, HTML tělem a SEO metadaty.
+- `GalleryItem` a `GalleryItemTranslation` pro publikovanou galerii realizací.
+- `Review` pro publikované recenze.
+- `NewsletterSubscription` s normalizovaným unikátním e-mailem, stavem odběru, hashem potvrzovacího tokenu, hashem odhlašovacího tokenu a časovými stopami potvrzení/odhlášení.
+- `ContactMessage` pro obecný kontaktní formulář, oddělený od produktových poptávek, s IP hashem pro rate limiting.
+
+Marketingové tabulky jsou vytvořeny migrací `20260718070959_Stage6MarketingContent`. Historické obchodní entity zůstávají beze změny.

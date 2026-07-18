@@ -1,0 +1,42 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      SA_PASSWORD: "${WILDSPIRIT_SQL_PASSWORD:?Set WILDSPIRIT_SQL_PASSWORD before running compose}"
+    ports:
+      - "14333:1433"
+    volumes:
+      - wildspirit-sql:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=WildSpiritDesignStore;User Id=sa;Password=${WILDSPIRIT_SQL_PASSWORD:?Set WILDSPIRIT_SQL_PASSWORD before running compose};TrustServerCertificate=True;Encrypt=False"
+      FileStorage__RootPath: /app/App_Data/storage
+    ports:
+      - "5198:8080"
+    volumes:
+      - wildspirit-storage:/app/App_Data/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  wildspirit-sql:
+  wildspirit-storage:

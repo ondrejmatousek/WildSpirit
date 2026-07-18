@@ -1,5 +1,6 @@
 using DesignStore.Domain.Catalog;
 using DesignStore.Domain.Commerce;
+using DesignStore.Domain.Marketing;
 using DesignStore.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         if (!await db.Categories.AnyAsync(ct)) await SeedCatalogAsync(ct);
         if (!await db.Materials.AnyAsync(ct)) await SeedStage2CatalogAsync(ct);
         if (!await db.DiscountCodes.AnyAsync(ct)) { db.DiscountCodes.Add(new DiscountCode { Code="WELCOME10",Type=DiscountType.Percentage,Value=10,MinimumOrderValue=1000,IsActive=true }); await db.SaveChangesAsync(ct); }
+        if (!await db.ContentPages.AnyAsync(ct)) await SeedMarketingAsync(ct);
     }
 
     private async Task SeedRolesAsync()
@@ -140,6 +142,20 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         db.ProductVariants.AddRange(variants);
         db.Add(productMaterial);
         db.ProductOptions.Add(option);
+        await db.SaveChangesAsync(ct);
+    }
+
+    private async Task SeedMarketingAsync(CancellationToken ct)
+    {
+        db.ContentPages.AddRange(
+            new ContentPage { Type=ContentPageType.Story, IsPublished=true, DisplayOrder=1, Translations=[new ContentPageTranslation{Culture="cs-CZ",Title="Příběh Wild Spirit",Slug="pribeh",Summary="Ateliér, materiály a objekty s charakterem.",BodyHtml="<p>Wild Spirit vzniká z respektu k dřevu, železu, kameni a poctivé ruční práci.</p>",SeoTitle="Příběh Wild Spirit",SeoDescription="Autorský design, řemeslo a přírodní materiály."}] },
+            new ContentPage { Type=ContentPageType.Craft, IsPublished=true, DisplayOrder=2, Translations=[new ContentPageTranslation{Culture="cs-CZ",Title="Řemeslo",Slug="remeslo",Summary="Proces výroby a péče o detail.",BodyHtml="<p>Každý kus prochází návrhem, výrobou, kontrolou a finální péčí v ateliéru.</p>",SeoTitle="Řemeslo Wild Spirit",SeoDescription="Jak vznikají objekty Wild Spirit."}] });
+        db.GalleryItems.AddRange(
+            new GalleryItem{IsPublished=true,DisplayOrder=1,ImageUrl="/images/hero-meadow-sunset.png",Translations=[new GalleryItemTranslation{Culture="cs-CZ",Title="Louka při západu",Description="Sepiová atmosféra ateliéru a přírodních materiálů."}]},
+            new GalleryItem{IsPublished=true,DisplayOrder=2,ImageUrl="/images/hero-meadow-sunset.png",Translations=[new GalleryItemTranslation{Culture="cs-CZ",Title="Dřevo, železo, kámen",Description="Materiály, které přirozeně stárnou a získávají charakter."}]});
+        db.Reviews.AddRange(
+            new Review{IsPublished=true,Culture="cs-CZ",AuthorName="Ateliérový zákazník",Rating=5,Text="Kus, který má vlastní ticho a váhu. Přesně to jsme hledali."},
+            new Review{IsPublished=true,Culture="cs-CZ",AuthorName="Interiérový architekt",Rating=5,Text="Silná materiálová estetika bez prázdného efektu."});
         await db.SaveChangesAsync(ct);
     }
 

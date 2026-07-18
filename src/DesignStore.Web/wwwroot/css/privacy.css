@@ -1,0 +1,51 @@
+.cookie-consent {
+    position: fixed;
+    right: clamp(1rem, 3vw, 2rem);
+    bottom: clamp(1rem, 3vw, 2rem);
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    max-width: min(720px, calc(100vw - 2rem));
+    padding: 1.25rem;
+    color: #f7f2e8;
+    background: rgba(24, 24, 22, .96);
+    border: 1px solid rgba(216, 196, 167, .35);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .28);
+}
+
+.cookie-consent p {
+    margin: 0;
+}
+
+.cookie-consent .eyebrow {
+    color: #d8c4a7;
+    margin-bottom: .35rem;
+}
+
+.account-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    max-width: 900px;
+    margin: -2rem auto 5rem;
+    padding: 0 1.25rem;
+}
+
+.account-actions article {
+    border: 1px solid var(--line);
+    padding: 2rem;
+    background: #fff;
+}
+
+.account-actions form {
+    margin-top: 1rem;
+}
+
+@media (max-width: 700px) {
+    .cookie-consent,
+    .account-actions {
+        grid-template-columns: 1fr;
+    }
+}

@@ -6,6 +6,7 @@ namespace DesignStore.Application.Catalog;
 
 public sealed record AdminProductListItem(Guid Id, string Sku, string Name, decimal Price, AvailabilityStatus Availability, bool IsPublished, int StockQuantity, bool HasVariants);
 public sealed record AdminLookup(Guid Id, string Name);
+public sealed record ProductImageAdminItem(Guid Id, string Url, string ThumbnailUrl, string AltText, bool IsPrimary, int DisplayOrder, int Width, int Height);
 
 public sealed class ProductTranslationInput
 {
@@ -83,6 +84,7 @@ public sealed class EditProductRequest
     public List<ProductTranslationInput> Translations { get; set; } = [new()];
     public List<ProductVariantInput> Variants { get; set; } = [];
     public List<ProductOptionInput> Options { get; set; } = [];
+    public List<ProductImageAdminItem> Images { get; set; } = [];
 }
 
 public sealed class EditCategoryRequest
@@ -123,6 +125,7 @@ public sealed class ReferenceItemRequest
 public interface ICatalogAdminService
 {
     Task<IReadOnlyList<AdminProductListItem>> GetProductsAsync(CancellationToken ct);
+    Task<string> GetNextProductSkuAsync(CancellationToken ct);
     Task<EditProductRequest?> GetProductAsync(Guid id, CancellationToken ct);
     Task<Guid> SaveProductAsync(EditProductRequest request, string? actor, CancellationToken ct);
     Task ArchiveProductAsync(Guid id, string? actor, CancellationToken ct);

@@ -146,3 +146,26 @@ Následující volby nejsou nutné pro Etapu 0 a nesmí být domyšleny bez obch
 - přesný právní retenční plán, znění souhlasů a obchodních podmínek;
 - zda přijetí nabídky automaticky vytváří objednávku, nebo vyžaduje administrátora;
 - analytická a marketingová řešení aktivovaná až po souhlasu.
+ 
+## ADR-023: Marketingový obsah bez externího social feedu
+
+- Stav: Přijato v Etapě 6
+- Rozhodnutí: galerie, obsahové stránky, recenze, newsletter a obecný kontakt jsou spravované vlastní databází a server-rendered MVC endpointy. Externí Instagram/social API se v první verzi nepoužívá.
+- Důvod: stabilní SEO, rychlé lokální ověření, žádné marketingové skripty před souhlasem a menší závislost na cizích platformách.
+
+## ADR-024: Newsletter tokeny se ukládají pouze jako hash
+
+- Stav: Přijato v Etapě 6
+- Rozhodnutí: potvrzovací i odhlašovací token newsletteru jsou generované s vysokou entropií a v databázi se ukládá pouze SHA-256 hash.
+- Důvod: únik databáze nesmí umožnit potvrdit nebo zrušit odběr bez vlastnictví surového tokenu.
+## ADR-025: GDPR žádost o zrušení účtu je ručně posuzovaná
+
+- Stav: Přijato v Etapě 7
+- Rozhodnutí: Přihlášený zákazník může stáhnout JSON export osobních údajů a podat žádost o zrušení účtu. Žádost se ukládá do outboxu pro ruční kontrolu; aplikace neprovádí okamžité fyzické smazání historických objednávek, plateb, poptávek, nabídek ani výroby.
+- Důvod: Obchodní a účetní doklady mohou podléhat zákonné retenci. Automatické smazání by mohlo poškodit auditovatelnost a historické snapshoty.
+
+## ADR-026: Security headers a CSP jako vlastní middleware
+
+- Stav: Přijato v Etapě 7
+- Rozhodnutí: Základní HTTP hardening hlavičky se nastavují vlastním `SecurityHeadersMiddleware`. CSP je aktivní mimo Development, aby neblokovala lokální diagnostiku a zároveň chránila produkci.
+- Důvod: Jednoduchá kontrolovatelná konfigurace bez další runtime závislosti a bez skrytých externích skriptů.

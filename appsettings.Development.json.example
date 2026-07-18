@@ -1,4 +1,4 @@
 {
-  "ConnectionStrings": { "DefaultConnection": "Server=(localdb)\\WildSpiritLocalDb;Database=WildSpiritDesignStore;Trusted_Connection=True;TrustServerCertificate=True" },
+  "ConnectionStrings": { "DefaultConnection": "Server=.\\SQLEXPRESS;Database=WildSpiritDesignStore;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False" },
   "DevelopmentAdmin": { "Email": "admin@example.test", "Password": "SET-VIA-USER-SECRETS-NOT-HERE" }
 }

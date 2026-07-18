@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/vintage.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/privacy.css" asp-append-version="true" />
 </head>
 <body class="@(isHome ? "home-page" : "inner-page")">
     <a class="skip-link" href="#main">Přejít na obsah</a>
@@ -42,6 +43,19 @@
         <div class="footer-signature"><span>Navrženo pomalu.</span><span>Vyrobeno poctivě.</span></div>
         <small>© @DateTime.UtcNow.Year Wild Spirit</small>
     </footer>
+    @if (!Context.Request.Cookies.ContainsKey("wildspirit_cookie_consent"))
+    {
+        <aside class="cookie-consent" aria-label="Nastavení soukromí">
+            <div>
+                <p class="eyebrow">Soukromí</p>
+                <p>Používáme nezbytné cookies pro bezpečné přihlášení, košík a fungování webu. Marketingové skripty nespouštíme bez souhlasu.</p>
+            </div>
+            <form asp-controller="Privacy" asp-action="CookieConsent" asp-route-culture="@culture" method="post">
+                <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                <button type="submit" class="button light">Rozumím</button>
+            </form>
+        </aside>
+    }
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

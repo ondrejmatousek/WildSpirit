@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.git/
+src/DesignStore.Web/App_Data/
+appsettings.*.local.json
+*.user
+*.suo
