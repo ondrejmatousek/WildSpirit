@@ -1,0 +1,12 @@
+Microsoft.Playwright.PlaywrightException: TypeError: Failed to fetch
+    at eval (eval at evaluate (:291:30), <anonymous>:1:196)
+    at UtilityScript.evaluate (<anonymous>:298:18)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+   at Microsoft.Playwright.Transport.Connection.InnerSendMessageToServerAsync[T](ChannelOwner object, String method, Dictionary`2 dictionary, Boolean keepNulls) in /_/src/Playwright/Transport/Connection.cs:line 201
+   at Microsoft.Playwright.Transport.Connection.WrapApiCallAsync[T](Func`1 action, Boolean isInternal, String title) in /_/src/Playwright/Transport/Connection.cs:line 499
+   at Microsoft.Playwright.Core.Frame.EvaluateAsync(String script, Object arg) in /_/src/Playwright/Core/Frame.cs:line 704
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<In_stock_product_can_be_added_to_cart>b__4_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 104
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<In_stock_product_can_be_added_to_cart>b__4_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 114
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Infrastructure.E2ETestFixture.RunWithArtifactsAsync(String name, Func`2 action) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Infrastructure\E2ETestFixture.cs:line 119

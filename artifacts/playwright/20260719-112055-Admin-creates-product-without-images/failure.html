@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="cs"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Nový produkt · Wild Spirit Admin</title>
+    <link rel="stylesheet" href="/css/site.css?v=ZWh-FtX5JWUGAGskC1P27Ojv_MgcC1JCvd7taF9v5qM">
+    <link rel="stylesheet" href="/css/admin.css?v=-vC9qL6v2WSfZkatV9EC7lur3VGr5VVJ8p9TDky-K0g">
+    <link rel="stylesheet" href="/css/admin-product-editor.css?v=psN69gcZ88CtFv3vZAoWZn5xzYjhzV0UEmgXMEeugLE">
+</head>
+<body class="admin-body">
+    <aside class="admin-sidebar">
+        <a class="admin-brand" aria-label="Wild Spirit administrace" href="/cs-CZ/Admin">
+            <img class="admin-brand-symbol" src="/images/brand/wild-spirit-symbol.svg" alt="">
+            <img class="admin-brand-wordmark" src="/images/brand/wild-spirit-wordmark.svg" alt="Wild Spirit">
+        </a>
+        <nav>
+            <a href="/cs-CZ/Admin">Přehled</a>
+            <a href="/cs-CZ/Admin/Products">Produkty</a>
+            <a href="/cs-CZ/Admin/Categories">Kategorie</a>
+            <a href="/cs-CZ/Admin/References">Kolekce a materiály</a>
+            <a href="/cs-CZ/Admin/Orders">Objednávky</a>
+            <a href="/cs-CZ">Zobrazit obchod</a>
+        </nav>
+        <form class="admin-logout-form" method="post" action="/cs-CZ/Account/Logout">
+            <input name="__RequestVerificationToken" type="hidden" value="CfDJ8L_dL6VH2hlErbqdc9Z3-LvMuHjZe8HJ9Aa8nr-rO1I5xLdq2ilZbU3gYXejRB4AtTv7sO1kicMt8OYcChBXuWgVcJTzCLeLa9z7-hhjILO_uZZp7k1NIAJEDmMwT_3uGxIZU74WiuGeyq1w16b3z_KDHT77qmrsTfETO6fB0S6U7QdQY8p9TuwL9EP5QbJvZQ" style="">
+            <button class="admin-logout-button" type="submit" data-testid="admin-logout-button">Odhlásit</button>
+        </form>
+    </aside>
+    <main class="admin-main">
+        <header class="admin-top"><span>e2e.admin@wildspirit.local</span></header>
+        
+<div class="admin-heading">
+    <div>
+        <p class="eyebrow">Katalog</p>
+        <h1>Nový produkt</h1>
+    </div>
+    <a href="/cs-CZ/Admin/Products">Zpět na seznam</a>
+</div>
+
+<form method="post" class="admin-form product-editor is-ready-mode" data-product-editor="" action="/cs-CZ/Admin/Products/Save">
+    <input type="hidden" id="Id" name="Id" value="" style="">
+
+    <section class="admin-card">
+        <h2>Základní údaje</h2>
+        <div class="product-mode-switch" role="group" aria-label="Typ prodeje produktu">
+            <label>
+                <input type="radio" name="ProductSaleMode" value="ready" data-product-mode="ready" checked="" style="">
+                <span>Hotový kus</span>
+                <small>Vyrobeno, skladem, prodává se za pevnou cenu.</small>
+            </label>
+            <label>
+                <input type="radio" name="ProductSaleMode" value="custom" data-product-mode="custom" style="">
+                <span>Zakázková výroba</span>
+                <small>Cena od, výroba na objednávku, termín výroby.</small>
+            </label>
+        </div>
+        <div class="form-grid">
+            <label>
+                SKU
+                <input data-testid="product-sku" type="text" data-val="true" data-val-required="The Sku field is required." id="Sku" name="Sku" value="WS-000001" style="">
+                <small class="field-help">Skladový kód produktu. U nového produktu se předvyplní automaticky a lze ho ručně upravit.</small>
+            </label>
+            <label>
+                Kategorie
+                <select data-category-template-select="" data-testid="product-category" data-val="true" data-val-required="The CategoryId field is required." id="CategoryId" name="CategoryId">
+                    <option value="">Vyberte</option>
+                        <option value="ea63b537-2501-4439-8332-08a1465d029a" data-category-name="E2E kabelky" data-category-slug="e2e-kabelky">E2E kabelky</option>
+                </select>
+            </label>
+            <label>
+                Kolekce
+                <select data-testid="product-collection" id="CollectionId" name="CollectionId">
+                    <option value="">Bez kolekce</option>
+                        <option value="f6e1f347-0305-4061-828c-3b513b529e3e">E2E kolekce</option>
+                </select>
+            </label>
+            <label data-ready-field="">Základní cena<input type="number" step="0.01" data-testid="product-base-price" data-val="true" data-val-number="The field BasePrice must be a number." data-val-required="The BasePrice field is required." id="BasePrice" name="BasePrice" value="0" style=""><input name="__Invariant" type="hidden" value="BasePrice" style=""><small class="field-help">Pevná cena hotového kusu.</small></label>
+            <label data-custom-field="">Cena od<input type="number" step="0.01" data-testid="product-starting-price" data-val="true" data-val-number="The field StartingPrice must be a number." id="StartingPrice" name="StartingPrice" value="" style=""><input name="__Invariant" type="hidden" value="StartingPrice" style=""><small class="field-help">Minimální orientační cena zakázkové výroby.</small></label>
+            <label>DPH %<input type="number" step="0.01" data-testid="product-vat-rate" data-val="true" data-val-number="The field VatRate must be a number." data-val-required="The VatRate field is required." id="VatRate" name="VatRate" value="21" style=""><input name="__Invariant" type="hidden" value="VatRate" style=""></label>
+            <label>Dostupnost<select data-availability-status="" data-availability-in-stock="1" data-availability-made-to-order="2" data-testid="product-availability" data-val="true" data-val-required="The AvailabilityStatus field is required." id="AvailabilityStatus" name="AvailabilityStatus"><option selected="selected" value="1">InStock</option>
+<option value="2">MadeToOrder</option>
+<option value="3">Unavailable</option>
+<option value="4">Discontinued</option>
+</select></label>
+            <label data-ready-field="">Sklad<input type="number" data-stock-quantity="" data-testid="product-stock" data-val="true" data-val-required="The StockQuantity field is required." id="StockQuantity" name="StockQuantity" value="0" style=""><input name="__Invariant" type="hidden" value="StockQuantity" style=""><small class="field-help">Počet hotových kusů skladem.</small></label>
+            <label data-custom-field="">Doba výroby ve dnech<input type="number" data-testid="product-production-days" id="EstimatedProductionDays" name="EstimatedProductionDays" value="" style=""><input name="__Invariant" type="hidden" value="EstimatedProductionDays" style=""><small class="field-help">Orientační termín pro výrobu na objednávku.</small></label>
+        </div>
+        <div class="checks">
+            <label><input data-testid="product-published" type="checkbox" data-val="true" data-val-required="The IsPublished field is required." id="IsPublished" name="IsPublished" value="true" style=""> Publikovat</label>
+            <label><input type="checkbox" data-val="true" data-val-required="The IsFeatured field is required." id="IsFeatured" name="IsFeatured" value="true" style=""> Doporučené</label>
+            <label><input type="checkbox" data-val="true" data-val-required="The IsNew field is required." id="IsNew" name="IsNew" value="true" style=""> Novinka</label>
+            <label><input type="checkbox" data-val="true" data-val-required="The IsLimited field is required." id="IsLimited" name="IsLimited" value="true" style=""> Limitované</label>
+            <label data-ready-field=""><input data-track-inventory="" type="checkbox" checked="checked" data-val="true" data-val-required="The TrackInventory field is required." id="TrackInventory" name="TrackInventory" value="true" style=""> Sledovat sklad</label>
+            <label><input data-testid="product-can-be-made-to-order" type="checkbox" data-val="true" data-val-required="The CanBeMadeToOrder field is required." id="CanBeMadeToOrder" name="CanBeMadeToOrder" value="true" style=""> Lze znovu vyrobit</label>
+            <label data-ready-field=""><input type="checkbox" data-val="true" data-val-required="The AutomaticallySwitchToMadeToOrder field is required." id="AutomaticallySwitchToMadeToOrder" name="AutomaticallySwitchToMadeToOrder" value="true" style=""> Po vyprodání na objednávku</label>
+            <label><input type="checkbox" data-val="true" data-val-required="The HasVariants field is required." id="HasVariants" name="HasVariants" value="true" style=""> Produkt má varianty</label>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Překlady a SEO</h2>
+                <p>Vyplňte nejdřív češtinu a potom použijte návrh překladu pro EN/DE.</p>
+            </div>
+            <button type="button" class="secondary" data-translate-product="">Přeložit z češtiny</button>
+        </div>
+        <div class="translation-note" data-translation-note="" hidden=""></div>
+        <div class="translation-tabs" role="tablist" aria-label="Jazyk překladu">
+                <button id="translation-tab-cs-CZ" type="button" class="translation-tab is-active" data-translation-tab="cs-CZ" role="tab" aria-controls="translation-panel-cs-CZ" aria-selected="true">Čeština</button>
+                <button id="translation-tab-en" type="button" class="translation-tab" data-translation-tab="en" role="tab" aria-controls="translation-panel-en" aria-selected="false">Angličtina</button>
+                <button id="translation-tab-de" type="button" class="translation-tab" data-translation-tab="de" role="tab" aria-controls="translation-panel-de" aria-selected="false">Němčina</button>
+        </div>
+            <fieldset id="translation-panel-cs-CZ" class="translation-panel is-active" data-translation-culture="cs-CZ" role="tabpanel" aria-labelledby="translation-tab-cs-CZ">
+                <legend>cs-CZ</legend>
+                <input type="hidden" data-val="true" data-val-required="The Culture field is required." id="Translations_0__Culture" name="Translations[0].Culture" value="cs-CZ" style="">
+                <div class="form-grid">
+                    <label>Název<input data-translation-field="Name" type="text" data-val="true" data-val-required="The Name field is required." id="Translations_0__Name" name="Translations[0].Name" value="" style=""></label>
+                    <label>Slug<input data-translation-field="Slug" type="text" data-val="true" data-val-required="The Slug field is required." id="Translations_0__Slug" name="Translations[0].Slug" value="" style=""><small class="field-help">Část URL adresy produktu, například kozena-kabelka-aurora. Při uložení se automaticky převede na bezpečný tvar.</small></label>
+                    <label class="wide">Krátký popis<textarea data-translation-field="ShortDescription" data-val="true" data-val-required="The ShortDescription field is required." id="Translations_0__ShortDescription" name="Translations[0].ShortDescription" style=""></textarea></label>
+                    <label class="wide">Dlouhý popis<textarea data-translation-field="LongDescription" data-val="true" data-val-required="The LongDescription field is required." id="Translations_0__LongDescription" name="Translations[0].LongDescription" style=""></textarea></label>
+                    <label class="wide">Příběh<textarea data-translation-field="Story" data-val="true" data-val-required="The Story field is required." id="Translations_0__Story" name="Translations[0].Story" style=""></textarea></label>
+                    <label class="wide">Materiály<textarea data-translation-field="Materials" data-val="true" data-val-required="The Materials field is required." id="Translations_0__Materials" name="Translations[0].Materials" style=""></textarea></label>
+                    <label class="wide">Péče<textarea data-translation-field="CareInstructions" data-val="true" data-val-required="The CareInstructions field is required." id="Translations_0__CareInstructions" name="Translations[0].CareInstructions" style=""></textarea></label>
+                    <label class="wide">Doprava<textarea data-translation-field="ShippingInformation" data-val="true" data-val-required="The ShippingInformation field is required." id="Translations_0__ShippingInformation" name="Translations[0].ShippingInformation" style=""></textarea></label>
+                    <label>SEO title<input data-translation-field="SeoTitle" type="text" data-val="true" data-val-required="The SeoTitle field is required." id="Translations_0__SeoTitle" name="Translations[0].SeoTitle" value="" style=""></label>
+                    <label>SEO description<input data-translation-field="SeoDescription" type="text" data-val="true" data-val-required="The SeoDescription field is required." id="Translations_0__SeoDescription" name="Translations[0].SeoDescription" value="" style=""></label>
+                </div>
+            </fieldset>
+            <fieldset id="translation-panel-en" class="translation-panel" data-translation-culture="en" role="tabpanel" aria-labelledby="translation-tab-en" hidden="">
+                <legend>en</legend>
+                <input type="hidden" data-val="true" data-val-required="The Culture field is required." id="Translations_1__Culture" name="Translations[1].Culture" value="en" style="">
+                <div class="form-grid">
+                    <label>Název<input data-translation-field="Name" type="text" data-val="true" data-val-required="The Name field is required." id="Translations_1__Name" name="Translations[1].Name" value="" style=""></label>
+                    <label>Slug<input data-translation-field="Slug" type="text" data-val="true" data-val-required="The Slug field is required." id="Translations_1__Slug" name="Translations[1].Slug" value="" style=""><small class="field-help">Část URL adresy produktu, například kozena-kabelka-aurora. Při uložení se automaticky převede na bezpečný tvar.</small></label>
+                    <label class="wide">Krátký popis<textarea data-translation-field="ShortDescription" data-val="true" data-val-required="The ShortDescription field is required." id="Translations_1__ShortDescription" name="Translations[1].ShortDescription" style=""></textarea></label>
+                    <label class="wide">Dlouhý popis<textarea data-translation-field="LongDescription" data-val="true" data-val-required="The LongDescription field is required." id="Translations_1__LongDescription" name="Translations[1].LongDescription" style=""></textarea></label>
+                    <label class="wide">Příběh<textarea data-translation-field="Story" data-val="true" data-val-required="The Story field is required." id="Translations_1__Story" name="Translations[1].Story" style=""></textarea></label>
+                    <label class="wide">Materiály<textarea data-translation-field="Materials" data-val="true" data-val-required="The Materials field is required." id="Translations_1__Materials" name="Translations[1].Materials" style=""></textarea></label>
+                    <label class="wide">Péče<textarea data-translation-field="CareInstructions" data-val="true" data-val-required="The CareInstructions field is required." id="Translations_1__CareInstructions" name="Translations[1].CareInstructions" style=""></textarea></label>
+                    <label class="wide">Doprava<textarea data-translation-field="ShippingInformation" data-val="true" data-val-required="The ShippingInformation field is required." id="Translations_1__ShippingInformation" name="Translations[1].ShippingInformation" style=""></textarea></label>
+                    <label>SEO title<input data-translation-field="SeoTitle" type="text" data-val="true" data-val-required="The SeoTitle field is required." id="Translations_1__SeoTitle" name="Translations[1].SeoTitle" value="" style=""></label>
+                    <label>SEO description<input data-translation-field="SeoDescription" type="text" data-val="true" data-val-required="The SeoDescription field is required." id="Translations_1__SeoDescription" name="Translations[1].SeoDescription" value="" style=""></label>
+                </div>
+            </fieldset>
+            <fieldset id="translation-panel-de" class="translation-panel" data-translation-culture="de" role="tabpanel" aria-labelledby="translation-tab-de" hidden="">
+                <legend>de</legend>
+                <input type="hidden" data-val="true" data-val-required="The Culture field is required." id="Translations_2__Culture" name="Translations[2].Culture" value="de" style="">
+                <div class="form-grid">
+                    <label>Název<input data-translation-field="Name" type="text" data-val="true" data-val-required="The Name field is required." id="Translations_2__Name" name="Translations[2].Name" value="" style=""></label>
+                    <label>Slug<input data-translation-field="Slug" type="text" data-val="true" data-val-required="The Slug field is required." id="Translations_2__Slug" name="Translations[2].Slug" value="" style=""><small class="field-help">Část URL adresy produktu, například kozena-kabelka-aurora. Při uložení se automaticky převede na bezpečný tvar.</small></label>
+                    <label class="wide">Krátký popis<textarea data-translation-field="ShortDescription" data-val="true" data-val-required="The ShortDescription field is required." id="Translations_2__ShortDescription" name="Translations[2].ShortDescription" style=""></textarea></label>
+                    <label class="wide">Dlouhý popis<textarea data-translation-field="LongDescription" data-val="true" data-val-required="The LongDescription field is required." id="Translations_2__LongDescription" name="Translations[2].LongDescription" style=""></textarea></label>
+                    <label class="wide">Příběh<textarea data-translation-field="Story" data-val="true" data-val-required="The Story field is required." id="Translations_2__Story" name="Translations[2].Story" style=""></textarea></label>
+                    <label class="wide">Materiály<textarea data-translation-field="Materials" data-val="true" data-val-required="The Materials field is required." id="Translations_2__Materials" name="Translations[2].Materials" style=""></textarea></label>
+                    <label class="wide">Péče<textarea data-translation-field="CareInstructions" data-val="true" data-val-required="The CareInstructions field is required." id="Translations_2__CareInstructions" name="Translations[2].CareInstructions" style=""></textarea></label>
+                    <label class="wide">Doprava<textarea data-translation-field="ShippingInformation" data-val="true" data-val-required="The ShippingInformation field is required." id="Translations_2__ShippingInformation" name="Translations[2].ShippingInformation" style=""></textarea></label>
+                    <label>SEO title<input data-translation-field="SeoTitle" type="text" data-val="true" data-val-required="The SeoTitle field is required." id="Translations_2__SeoTitle" name="Translations[2].SeoTitle" value="" style=""></label>
+                    <label>SEO description<input data-translation-field="SeoDescription" type="text" data-val="true" data-val-required="The SeoDescription field is required." id="Translations_2__SeoDescription" name="Translations[2].SeoDescription" value="" style=""></label>
+                </div>
+            </fieldset>
+    </section>
+
+    <section class="admin-card">
+        <h2>Materiály</h2>
+        <div class="checks">
+                <label><input type="checkbox" name="MaterialIds" value="eeef9a3f-907a-4537-920d-62f203a20340" style=""> E2E kůže</label>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <h2>Varianty</h2>
+        <p>Variantový produkt vede sklad pouze zde.</p>
+        <div id="variants">
+        </div>
+        <button type="button" class="secondary" data-add-variant="">Přidat variantu</button>
+    </section>
+
+    <section class="admin-card">
+        <h2>Produktové volby</h2>
+        <div id="options">
+        </div>
+        <button type="button" class="secondary" data-add-option="">Přidat volbu</button>
+    </section>
+
+    <div class="form-actions"><button class="button" type="submit" data-testid="product-save">Uložit produkt</button></div>
+<input name="__RequestVerificationToken" type="hidden" value="CfDJ8L_dL6VH2hlErbqdc9Z3-LvMuHjZe8HJ9Aa8nr-rO1I5xLdq2ilZbU3gYXejRB4AtTv7sO1kicMt8OYcChBXuWgVcJTzCLeLa9z7-hhjILO_uZZp7k1NIAJEDmMwT_3uGxIZU74WiuGeyq1w16b3z_KDHT77qmrsTfETO6fB0S6U7QdQY8p9TuwL9EP5QbJvZQ" style=""><input name="IsPublished" type="hidden" value="false" style=""><input name="IsFeatured" type="hidden" value="false" style=""><input name="IsNew" type="hidden" value="false" style=""><input name="IsLimited" type="hidden" value="false" style=""><input name="TrackInventory" type="hidden" value="false" style=""><input name="CanBeMadeToOrder" type="hidden" value="false" style=""><input name="AutomaticallySwitchToMadeToOrder" type="hidden" value="false" style=""><input name="HasVariants" type="hidden" value="false" style=""></form>
+
+    <section class="admin-card">
+        <h2>Produktové fotografie</h2>
+        <p>Fotografie půjdou nahrát po prvním uložení produktu, aby se měly k čemu bezpečně připojit.</p>
+    </section>
+
+    </main>
+    <script src="/js/admin.js?v=wn8Dygy65gXh_4mdhLJswuuKbp-VNfBxFM4d-nAuKwE"></script></body></html>

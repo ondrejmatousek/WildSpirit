@@ -1,0 +1,11 @@
+2026-07-19T17:37:00.3314765Z GET http://127.0.0.1:52574/cs-CZ/product/e2e-cart-c4cf80c04ae047ee9149e3e24f726ffb
+2026-07-19T17:37:03.6033197Z GET https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap
+2026-07-19T17:37:03.6036023Z GET http://127.0.0.1:52574/css/site.css?v=ZWh-FtX5JWUGAGskC1P27Ojv_MgcC1JCvd7taF9v5qM
+2026-07-19T17:37:03.6037337Z GET http://127.0.0.1:52574/css/vintage.css?v=q5yaAQysyx5KX0DrRwyf7xL5_jCKuz2DSJKIA7z3LT4
+2026-07-19T17:37:03.6038716Z GET http://127.0.0.1:52574/css/privacy.css?v=k4O_kBozsJ_leXDAI3EliEePl8rzI_JI9Nql3KxELis
+2026-07-19T17:37:03.6040150Z GET http://127.0.0.1:52574/images/brand/wild-spirit-symbol.svg
+2026-07-19T17:37:03.6041298Z GET http://127.0.0.1:52574/images/brand/wild-spirit-wordmark.svg
+2026-07-19T17:37:03.6043076Z GET http://127.0.0.1:52574/images/brand/wild-spirit-logo.svg
+2026-07-19T17:37:03.6045693Z GET http://127.0.0.1:52574/js/site.js?v=MDkAcuNzVK-K6rxdybfvhEAQSVoc8Eu80Png4QDj3M8
+2026-07-19T17:37:03.6539827Z POST http://127.0.0.1:52574/cs-CZ/cart/add
+2026-07-19T17:37:03.7128010Z GET https://127.0.0.1:52574/cs-CZ/product/e2e-cart-c4cf80c04ae047ee9149e3e24f726ffb

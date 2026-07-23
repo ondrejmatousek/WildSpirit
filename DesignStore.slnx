@@ -6,6 +6,7 @@
     <Project Path="src/DesignStore.Web/DesignStore.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DesignStore.E2E.Tests/DesignStore.E2E.Tests.csproj" />
     <Project Path="tests/DesignStore.Tests/DesignStore.Tests.csproj" />
   </Folder>
 </Solution>

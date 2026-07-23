@@ -1,0 +1,14 @@
+System.InvalidOperationException: Upload step failed: Verify uploaded image was persisted.
+ ---> Xunit.Sdk.FailException: Condition was not met before timeout.
+   at Xunit.Assert.Fail(String message) in /_/src/xunit.assert/Asserts/FailAsserts.cs:line 38
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.WaitUntilAsync(Func`1 condition) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 231
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c__DisplayClass2_1.<<Admin_creates_product_with_one_uploaded_image>b__5>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 69
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.TimedStepAsync(String stepName, Func`1 action, Nullable`1 timeout) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 211
+   --- End of inner exception stack trace ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.TimedStepAsync(String stepName, Func`1 action, Nullable`1 timeout) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 219
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<Admin_creates_product_with_one_uploaded_image>b__2_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 68
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<Admin_creates_product_with_one_uploaded_image>b__2_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 75
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Infrastructure.E2ETestFixture.RunWithArtifactsAsync(String name, Func`2 action) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Infrastructure\E2ETestFixture.cs:line 146

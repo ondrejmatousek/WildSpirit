@@ -16,4 +16,12 @@
             <button class="button" type="submit">Požádat o zrušení</button>
         </form>
     </article>
+    <article>
+        <span>05</span>
+        <h2>Odhlášení</h2>
+        <p>Ukončete aktuální přihlášení a vraťte se na úvodní stránku.</p>
+        <form asp-controller="Account" asp-action="Logout" asp-route-culture="cs-CZ" method="post" asp-antiforgery="true">
+            <button class="button" type="submit">Odhlásit se</button>
+        </form>
+    </article>
 </section>

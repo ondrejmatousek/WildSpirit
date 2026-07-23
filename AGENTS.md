@@ -1,84 +1,47 @@
-# \# DesignStore
+# DesignStore
 
-# 
+## Project
 
-# \## Project
+Production ASP.NET Core MVC ecommerce application.
 
-# 
+## Rules
 
-# Production ASP.NET Core MVC ecommerce application.
+- Respect ARCHITECTURE.md and DATA_MODEL.md when relevant.
+- Keep controllers thin.
+- Keep business logic outside Web and Razor.
+- Use async APIs and CancellationToken where applicable.
+- Use decimal for money.
+- Prevent overselling.
+- Preserve historical snapshots.
+- Never expose internal information.
 
-# 
+## Scope
 
-# \## Rules
+- Modify only what the task requires.
+- Avoid unrelated refactoring.
+- Do not expand the requested scope.
+- Do not continue to another stage automatically.
+- Do not perform additional investigations unless required to complete the task.
+- Reuse existing architecture and services.
 
-# 
+## Verification
 
-# \- Respect ARCHITECTURE.md and DATA\_MODEL.md when relevant.
+Use the smallest verification that provides reasonable confidence.
 
-# \- Keep controllers thin.
+Small change:
+- Build the affected project only.
 
-# \- Keep business logic outside Web and Razor.
+Functional change:
+- Build the affected project.
+- Run relevant targeted tests.
 
-# \- Use async APIs and CancellationToken.
+Schema, security, or stage completion:
+- Build the solution.
+- Run relevant tests.
+- Verify migrations when applicable.
 
-# \- Use decimal for money.
+Do not perform end-to-end or runtime verification unless explicitly requested or necessary to complete the task.
 
-# \- Prevent overselling.
+## Skills
 
-# \- Preserve historical snapshots.
-
-# \- Never expose internal information.
-
-# 
-
-# \## Scope
-
-# 
-
-# \- Modify only what the task requires.
-
-# \- Avoid unrelated refactoring.
-
-# \- Do not continue to another stage automatically.
-
-# \- Reuse existing architecture and services.
-
-# 
-
-# \## Verification
-
-# 
-
-# Use verification proportional to the change.
-
-# 
-
-# Small change:
-
-# \- Build affected project only.
-
-# 
-
-# Functional change:
-
-# \- Build + relevant tests.
-
-# 
-
-# Schema/security/stage completion:
-
-# \- Build solution.
-
-# \- Run tests.
-
-# \- Verify migrations if needed.
-
-# 
-
-# \## Skills
-
-# 
-
-# Use only the skills relevant to the current task.
-
+Use only the skills relevant to the current task.

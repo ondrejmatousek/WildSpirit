@@ -40,8 +40,9 @@ a, button { transition: color .2s ease, background .2s ease, border-color .2s ea
 .main-nav a:hover::after, .account-nav a:hover::after { right: 0; }
 .header-tools { justify-self: end; display: flex; align-items: center; gap: 1.3rem; }
 .account-nav { display: flex; align-items: center; gap: .8rem; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; }
-.account-nav form { margin: 0; }
-.account-nav button { padding: 0; border: 0; background: none; color: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: .1em; font-size: .68rem; font-weight: 600; }
+.account-nav form { display: inline-flex; align-items: center; margin: 0; pointer-events: auto; }
+.account-nav button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: .35rem 0; border: 0; background: none; color: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: .1em; font-size: .68rem; font-weight: 600; }
+.account-nav button:hover { color: var(--club-cognac); }
 .language-nav { display: flex; gap: .5rem; padding-left: 1.2rem; border-left: 1px solid currentColor; font-size: .62rem; letter-spacing: .08em; opacity: .78; }
 .menu-toggle { display: none; }
 
@@ -188,7 +189,7 @@ label { color: var(--club-ink); }
     .main-nav { display: none; top: 96px; padding: 2.2rem; background: var(--club-ink); color: #fff; }
     .main-nav.open { display: flex; }
     .header-tools { grid-column: 3; }
-    .account-nav a:not(:first-child), .account-nav form { display: none; }
+    .account-nav a:not(:first-child) { display: none; }
     .auth-shell { grid-template-columns: 1fr; }
     .auth-visual { min-height: 48svh; }
     .auth-panel { padding-block: 5rem; }

@@ -1,0 +1,27 @@
+System.TimeoutException: Upload step timed out after 25 seconds: Submit product image upload form.
+ ---> System.TimeoutException: Timeout 10000ms exceeded.
+Call log:
+  - waiting for GetByTestId("product-image-upload")
+    - locator resolved to <button class="button" data-testid="product-image-upload">Nahrát fotografie</button>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+   at Microsoft.Playwright.Transport.Connection.InnerSendMessageToServerAsync[T](ChannelOwner object, String method, Dictionary`2 dictionary, Boolean keepNulls) in /_/src/Playwright/Transport/Connection.cs:line 201
+   at Microsoft.Playwright.Transport.Connection.WrapApiCallAsync[T](Func`1 action, Boolean isInternal, String title) in /_/src/Playwright/Transport/Connection.cs:line 499
+   at Microsoft.Playwright.Core.Waiter.WrapActionAsync(Func`1 action, CancellationTokenSource cts) in /_/src/Playwright/Core/Waiter.cs:line 249
+   at Microsoft.Playwright.Core.Waiter.CancelWaitOnExceptionAsync(Task waitForEventTask, Func`1 action) in /_/src/Playwright/Core/Waiter.cs:line 242
+   at Microsoft.Playwright.Core.Page.InnerWaitForEventAsync[T](PlaywrightEvent`1 pageEvent, Func`1 action, Func`2 predicate, Nullable`1 timeout) in /_/src/Playwright/Core/Page.cs:line 499
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c__DisplayClass2_0.<<Admin_creates_product_with_one_uploaded_image>b__3>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 60
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.TimedStepAsync(String stepName, Func`1 action, Nullable`1 timeout) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 211
+   --- End of inner exception stack trace ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.TimedStepAsync(String stepName, Func`1 action, Nullable`1 timeout) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 215
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<Admin_creates_product_with_one_uploaded_image>b__2_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 58
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<Admin_creates_product_with_one_uploaded_image>b__2_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 75
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Infrastructure.E2ETestFixture.RunWithArtifactsAsync(String name, Func`2 action) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Infrastructure\E2ETestFixture.cs:line 138
