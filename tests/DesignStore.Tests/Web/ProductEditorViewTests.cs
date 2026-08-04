@@ -121,6 +121,17 @@ public sealed class ProductEditorViewTests
         Assert.Contains(".product-editor .nested-row", css);
     }
 
+    [Fact]
+    public void Product_editor_dynamic_blank_rows_do_not_use_browser_required_validation()
+    {
+        var scriptPath = FindRepoFile("src", "DesignStore.Web", "wwwroot", "js", "admin.js");
+        var script = File.ReadAllText(scriptPath);
+
+        Assert.DoesNotContain("Options[${i}].Name\" required", script);
+        Assert.DoesNotContain("Variants[${i}].Sku\" required", script);
+        Assert.DoesNotContain("Variants[${i}].Name\" required", script);
+    }
+
     private static string FindRepoFile(params string[] parts)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

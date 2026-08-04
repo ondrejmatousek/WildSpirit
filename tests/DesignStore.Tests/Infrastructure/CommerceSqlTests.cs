@@ -3,6 +3,7 @@ using DesignStore.Domain.Catalog;
 using DesignStore.Domain.Commerce;
 using DesignStore.Infrastructure.Commerce;
 using FluentValidation;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -19,8 +20,35 @@ public sealed class CommerceSqlTests(SqlServerDatabaseFixture database)
  {var productId=await Product(2);var token=Guid.NewGuid().ToString("N");await using(var db=database.CreateDb()){var s=Service(db);await s.AddAsync(token,null,"cs-CZ",new(productId,null,1,[]),default);var first=await s.CheckoutAsync(token,null,Checkout("same-key"),default);var second=await s.CheckoutAsync(token,null,Checkout("same-key"),default);Assert.Equal(first.OrderId,second.OrderId);await s.CancelAsync(first.OrderId,"test",default);await s.CancelAsync(first.OrderId,"test",default);}await using(var verify=database.CreateDb()){Assert.Equal(2,await verify.Products.Where(x=>x.Id==productId).Select(x=>x.StockQuantity).SingleAsync());Assert.Equal(1,await verify.InventoryMovements.CountAsync(x=>x.ProductId==productId&&x.Type==InventoryMovementType.Return));}}
  [Fact]public async Task Two_checkouts_cannot_buy_the_same_last_item_and_zero_switches_to_unavailable()
  {var productId=await Product(1);var t1=Guid.NewGuid().ToString("N");var t2=Guid.NewGuid().ToString("N");await using(var prep=database.CreateDb()){var s=Service(prep);await s.AddAsync(t1,null,"cs-CZ",new(productId,null,1,[]),default);await s.AddAsync(t2,null,"cs-CZ",new(productId,null,1,[]),default);}var tasks=new[]{Run(t1,"race-1"),Run(t2,"race-2")};var results=await Task.WhenAll(tasks);Assert.Equal(1,results.Count(x=>x));await using var verify=database.CreateDb();var p=await verify.Products.SingleAsync(x=>x.Id==productId);Assert.Equal(0,p.StockQuantity);Assert.Equal(AvailabilityStatus.Unavailable,p.AvailabilityStatus);Assert.Equal(1,await verify.Orders.CountAsync(x=>x.Items.Any(i=>i.ProductId==productId)));}
- async Task<bool> Run(string token,string key){try{await using var db=database.CreateDb();await Service(db).CheckoutAsync(token,null,Checkout(key),default);return true;}catch(ValidationException){return false;}catch(DbUpdateException){return false;}}
+ async Task<bool> Run(string token,string key){try{await using var db=database.CreateDb();await Service(db).CheckoutAsync(token,null,Checkout(key),default);return true;}catch(ValidationException){return false;}catch(DbUpdateException){return false;}catch(InvalidOperationException ex) when(ex.InnerException is SqlException sql&&sql.Number==1205){return false;}}
  [Fact]public async Task Made_to_order_product_cannot_be_added_to_cart(){var id=await Product(0,true);await using var db=database.CreateDb();var p=await db.Products.SingleAsync(x=>x.Id==id);p.AvailabilityStatus=AvailabilityStatus.MadeToOrder;await db.SaveChangesAsync();await Assert.ThrowsAsync<ValidationException>(()=>Service(db).AddAsync(Guid.NewGuid().ToString("N"),null,"cs-CZ",new(id,null,1,[]),default));}
+ [Fact]public async Task Cart_routine_update_discount_and_remove_saves_without_database_errors()
+ {
+  var productId=await Product(5);
+  var token=Guid.NewGuid().ToString("N");
+  await using var db=database.CreateDb();
+  db.DiscountCodes.Add(new DiscountCode{Code=$"SAVE{Guid.NewGuid():N}"[..12].ToUpperInvariant(),Type=DiscountType.Percentage,Value=10,MinimumOrderValue=100,IsActive=true});
+  await db.SaveChangesAsync();
+  var discount=await db.DiscountCodes.AsNoTracking().OrderByDescending(x=>x.CreatedAtUtc).Select(x=>x.Code).FirstAsync();
+  var service=Service(db);
+
+  await service.AddAsync(token,null,"cs-CZ",new AddToCartRequest(productId,null,1,[]),default);
+  var cart=await service.GetCartAsync(token,null,"cs-CZ",default);
+  var itemId=cart.Items.Single().Id;
+
+  await service.UpdateQuantityAsync(token,null,itemId,3,default);
+  await service.ApplyDiscountAsync(token,null,discount,default);
+  var discounted=await service.GetCartAsync(token,null,"cs-CZ",default);
+
+  Assert.Equal(3,discounted.Items.Single().Quantity);
+  Assert.Equal(discount,discounted.DiscountCode);
+  Assert.True(discounted.Discount>0);
+
+  await service.RemoveAsync(token,null,itemId,default);
+  var empty=await service.GetCartAsync(token,null,"cs-CZ",default);
+
+  Assert.Empty(empty.Items);
+ }
  [Fact]public async Task Configured_product_can_go_from_cart_to_bank_transfer_order_with_standard_shipping()
  {
   var fixture=await ConfiguredProduct(stock:3);
@@ -123,6 +151,52 @@ public sealed class CommerceSqlTests(SqlServerDatabaseFixture database)
   {
    Assert.False(await verify.Orders.AsNoTracking().AnyAsync(x=>x.Items.Any(i=>i.ProductId==productId)));
    Assert.Equal(1,await verify.Products.AsNoTracking().Where(x=>x.Id==productId).Select(x=>x.StockQuantity).SingleAsync());
+  }
+ }
+ [Fact]public async Task Order_contact_update_saves_addresses_and_validates_phone_without_concurrency_error()
+ {
+  var productId=await Product(2);
+  var token=Guid.NewGuid().ToString("N");
+  Guid orderId;
+  await using(var db=database.CreateDb())
+  {
+   var service=Service(db);
+   await service.AddAsync(token,null,"cs-CZ",new AddToCartRequest(productId,null,1,[]),default);
+   orderId=(await service.CheckoutAsync(token,null,Checkout($"contact-{Guid.NewGuid():N}"),default)).OrderId;
+  }
+  await using(var db=database.CreateDb())
+  {
+   var service=Service(db);
+   var invalid=new OrderContactUpdateRequest
+   {
+    Email="buyer@example.test",
+    BillingAddress=new AddressInput{FullName="Ondřej Matoušek",Street="Kosmická 742",City="Praha",PostalCode="14900",CountryCode="CZ",Phone="774"},
+    ShippingAddress=new AddressInput{FullName="Ondřej Matoušek",Street="Kosmická 742",City="Praha",PostalCode="14900",CountryCode="CZ",Phone="774501987"}
+   };
+
+   await Assert.ThrowsAsync<ValidationException>(()=>service.UpdateOrderContactAsync(orderId,invalid,"admin@example.test",default));
+
+   var valid=new OrderContactUpdateRequest
+   {
+    Email="ondrej.matousek@example.test",
+    BillingAddress=new AddressInput{FullName="Ondřej Matoušek",Company="",Street="Kosmická 742",City="Praha",PostalCode="14900",CountryCode="CZ",Phone="774501987"},
+    ShippingAddress=new AddressInput{FullName="Wild Spirit Ateliér",Company="",Street="Louka 7",City="Brno",PostalCode="60200",CountryCode="CZ",Phone="+420 774 501 987"}
+   };
+
+   await service.UpdateOrderContactAsync(orderId,valid,"admin@example.test",default);
+  }
+  await using(var verify=database.CreateDb())
+  {
+   var order=await verify.Orders.AsNoTracking().Include(x=>x.Addresses).Include(x=>x.StatusHistory).SingleAsync(x=>x.Id==orderId);
+   var billing=order.Addresses.Single(x=>x.Type==AddressType.Billing);
+   var shipping=order.Addresses.Single(x=>x.Type==AddressType.Shipping);
+
+   Assert.Equal("ondrej.matousek@example.test",order.Email);
+   Assert.Equal("Ondřej Matoušek",billing.FullName);
+   Assert.Equal("774501987",billing.Phone);
+   Assert.Equal("Wild Spirit Ateliér",shipping.FullName);
+   Assert.Equal("+420 774 501 987",shipping.Phone);
+   Assert.Contains(order.StatusHistory,x=>x.Reason=="Administrace: upraven kontakt a adresa");
   }
  }
  async Task<(Guid ProductId,Guid OptionId,Guid OptionValueId)> ConfiguredProduct(int stock)

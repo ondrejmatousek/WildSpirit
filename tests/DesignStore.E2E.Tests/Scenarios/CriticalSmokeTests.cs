@@ -111,12 +111,8 @@ public sealed class CriticalSmokeTests
 
             await GoToAsync(page, $"/cs-CZ/product/{slug}");
             await Assertions.Expect(page.GetByTestId("add-to-cart-button")).ToBeVisibleAsync();
-            var productId = await page.Locator("input[name='ProductId']").InputValueAsync();
-            var token = await page.GetByTestId("add-to-cart-form").Locator("input[name='__RequestVerificationToken']").InputValueAsync();
-            await page.EvaluateAsync(
-                "async data => { const form = new FormData(); form.append('__RequestVerificationToken', data.token); form.append('ProductId', data.productId); form.append('Quantity', '1'); const response = await fetch('/cs-CZ/cart/add', { method: 'POST', body: form, credentials: 'include' }); if (!response.ok) throw new Error(`Add to cart failed: ${response.status}`); }",
-                new { productId, token });
-            await GoToAsync(page, "/cs-CZ/cart");
+            await page.GetByTestId("add-to-cart-button").ClickAsync(new LocatorClickOptions { Force = true, Timeout = 10_000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex(".*/cs-CZ/cart/?$"));
             await Assertions.Expect(page.GetByTestId("cart-line")).ToHaveCountAsync(1);
             await Assertions.Expect(page.GetByText(name)).ToBeVisibleAsync();
         }

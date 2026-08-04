@@ -1,3 +1,20 @@
-@model DesignStore.Application.Commerce.OrderDetail
-@{ViewData["Title"]="Objednávka přijata";}
-<section class="catalog-header"><p class="eyebrow">Děkujeme</p><h1>Objednávka @Model.Number byla přijata</h1><p>Stav platby: @Model.PaymentStatus</p><strong>@Model.Total.ToString("N0") @Model.Currency</strong></section>
+@using DesignStore.Domain.Commerce
+@model DesignStore.Application.Commerce.CheckoutResult
+@{
+    ViewData["Title"] = "Objednávka přijata";
+    var paymentStatus = Model.PaymentStatus switch
+    {
+        PaymentStatus.Pending => "Čeká na platbu",
+        PaymentStatus.Paid => "Zaplaceno",
+        PaymentStatus.Failed => "Platba selhala",
+        PaymentStatus.Cancelled => "Platba zrušena",
+        _ => Model.PaymentStatus.ToString()
+    };
+}
+
+<section class="catalog-header order-confirmation-header">
+    <p class="eyebrow">Děkujeme</p>
+    <h1>Objednávka @Model.OrderNumber byla přijata</h1>
+    <p>Stav platby: @paymentStatus</p>
+    <strong>@Model.Total.ToString("N0") @Model.Currency</strong>
+</section>

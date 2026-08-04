@@ -1,6 +1,103 @@
 @using DesignStore.Application.Commerce
 @using DesignStore.Domain.Commerce
 @model CheckoutRequest
-@{ViewData["Title"]="Pokladna";var cart=(CartView)ViewBag.Cart;}
-<section class="catalog-header"><p class="eyebrow">Bezpečné dokončení</p><h1>Pokladna</h1><p>Částka bude před vytvořením objednávky znovu spočítána na serveru.</p></section>
-<form method="post" class="checkout-form"><div asp-validation-summary="All"></div><input asp-for="IdempotencyKey" type="hidden"/><label>E-mail<input asp-for="Email" autocomplete="email"/></label><fieldset><legend>Fakturační adresa</legend><label>Jméno<input asp-for="BillingAddress.FullName"/></label><label>Firma<input asp-for="BillingAddress.Company"/></label><label>Ulice<input asp-for="BillingAddress.Street"/></label><label>Město<input asp-for="BillingAddress.City"/></label><label>PSČ<input asp-for="BillingAddress.PostalCode"/></label><label>Země<input asp-for="BillingAddress.CountryCode" maxlength="2"/></label><label>Telefon<input asp-for="BillingAddress.Phone"/></label></fieldset><label><input asp-for="UseBillingAsShipping"/> Dodací adresa je stejná</label><fieldset><legend>Dodací adresa (pokud je jiná)</legend><label>Jméno<input asp-for="ShippingAddress.FullName"/></label><label>Ulice<input asp-for="ShippingAddress.Street"/></label><label>Město<input asp-for="ShippingAddress.City"/></label><label>PSČ<input asp-for="ShippingAddress.PostalCode"/></label><label>Země<input asp-for="ShippingAddress.CountryCode" maxlength="2"/></label></fieldset><fieldset><legend>Doprava</legend><label><input asp-for="ShippingMethod" type="radio" value="standard" checked/> Kurýr 250 Kč</label><label><input asp-for="ShippingMethod" type="radio" value="pickup"/> Osobní odběr zdarma</label></fieldset><fieldset><legend>Platba</legend><label><input asp-for="PaymentMethod" type="radio" value="BankTransfer" checked/> Bankovní převod</label>@if((bool)ViewBag.AllowTestPayment){<label><input asp-for="PaymentMethod" type="radio" value="Test"/> Testovací platba</label>}</fieldset><strong>K úhradě včetně zvolené dopravy: od @cart.Total.ToString("N0") Kč</strong><button class="button" type="submit">Objednat s povinností platby</button></form>
+@{
+    ViewData["Title"] = "Pokladna";
+    var cart = (CartView)ViewBag.Cart;
+}
+
+<section class="checkout-header">
+    <p class="eyebrow">Bezpečné dokončení</p>
+    <h1>Pokladna</h1>
+    <p>Částka bude před vytvořením objednávky znovu spočítána na serveru.</p>
+</section>
+
+<form method="post" class="checkout-form" data-checkout-form novalidate>
+    <div class="checkout-validation" asp-validation-summary="ModelOnly"></div>
+    <input asp-for="IdempotencyKey" type="hidden" />
+
+    <div class="checkout-main">
+        <section class="checkout-card checkout-contact">
+            <h2>Kontakt</h2>
+            <label>
+                E-mail
+                <input asp-for="Email" autocomplete="email" />
+                <span asp-validation-for="Email"></span>
+            </label>
+        </section>
+
+        <fieldset class="checkout-card checkout-address">
+            <legend>Fakturační adresa</legend>
+            <div class="checkout-fields">
+                <label>Jméno<input asp-for="BillingAddress.FullName" autocomplete="name" /><span asp-validation-for="BillingAddress.FullName"></span></label>
+                <label>Firma<input asp-for="BillingAddress.Company" autocomplete="organization" /><span asp-validation-for="BillingAddress.Company"></span></label>
+                <label>Ulice<input asp-for="BillingAddress.Street" autocomplete="address-line1" /><span asp-validation-for="BillingAddress.Street"></span></label>
+                <label>Město<input asp-for="BillingAddress.City" autocomplete="address-level2" /><span asp-validation-for="BillingAddress.City"></span></label>
+                <label>PSČ<input asp-for="BillingAddress.PostalCode" autocomplete="postal-code" /><span asp-validation-for="BillingAddress.PostalCode"></span></label>
+                <label>Země<input asp-for="BillingAddress.CountryCode" maxlength="2" autocomplete="country" /><span asp-validation-for="BillingAddress.CountryCode"></span></label>
+                <label>Telefon<input asp-for="BillingAddress.Phone" autocomplete="tel" /><span asp-validation-for="BillingAddress.Phone"></span></label>
+            </div>
+        </fieldset>
+
+        <label class="checkout-card checkout-shipping-toggle">
+            <input asp-for="UseBillingAsShipping" />
+            Dodací adresa je stejná
+        </label>
+
+        <fieldset class="checkout-card checkout-shipping">
+            <legend>Dodací adresa</legend>
+            <div class="checkout-fields">
+                <label>Jméno<input asp-for="ShippingAddress.FullName" /><span asp-validation-for="ShippingAddress.FullName"></span></label>
+                <label>Ulice<input asp-for="ShippingAddress.Street" /><span asp-validation-for="ShippingAddress.Street"></span></label>
+                <label>Město<input asp-for="ShippingAddress.City" /><span asp-validation-for="ShippingAddress.City"></span></label>
+                <label>PSČ<input asp-for="ShippingAddress.PostalCode" /><span asp-validation-for="ShippingAddress.PostalCode"></span></label>
+                <label>Země<input asp-for="ShippingAddress.CountryCode" maxlength="2" /><span asp-validation-for="ShippingAddress.CountryCode"></span></label>
+            </div>
+        </fieldset>
+    </div>
+
+    <aside class="checkout-sidebar">
+        <section class="checkout-card checkout-summary">
+            <h2>Souhrn</h2>
+            @foreach (var item in cart.Items)
+            {
+                <div class="checkout-summary-line">
+                    <span>@item.Quantity × @item.Name</span>
+                    <strong>@item.Total.ToString("N0") Kč</strong>
+                </div>
+            }
+            <div class="checkout-summary-row">
+                <span>Mezisoučet</span>
+                <strong>@cart.Subtotal.ToString("N0") Kč</strong>
+            </div>
+            @if (cart.Discount > 0)
+            {
+                <div class="checkout-summary-row">
+                    <span>Sleva</span>
+                    <strong>-@cart.Discount.ToString("N0") Kč</strong>
+                </div>
+            }
+            <div class="checkout-summary-total">
+                <span>K úhradě</span>
+                <strong>od @cart.Total.ToString("N0") Kč</strong>
+            </div>
+        </section>
+
+        <fieldset class="checkout-card checkout-options">
+            <legend>Doprava</legend>
+            <label><input asp-for="ShippingMethod" type="radio" value="standard" checked /> Kurýr 250 Kč</label>
+            <label><input asp-for="ShippingMethod" type="radio" value="pickup" /> Osobní odběr zdarma</label>
+        </fieldset>
+
+        <fieldset class="checkout-card checkout-options">
+            <legend>Platba</legend>
+            <label><input asp-for="PaymentMethod" type="radio" value="BankTransfer" checked /> Bankovní převod</label>
+            @if ((bool)ViewBag.AllowTestPayment)
+            {
+                <label><input asp-for="PaymentMethod" type="radio" value="Test" /> Testovací platba</label>
+            }
+        </fieldset>
+
+        <button class="button checkout-submit" type="submit">Objednat</button>
+    </aside>
+</form>

@@ -1,0 +1,13 @@
+Microsoft.Playwright.PlaywrightException: Page URL expected to match regex '.*/cs-CZ/cart/?$'
+But was: 'http://127.0.0.1:63640/cs-CZ/product/e2e-cart-edea0f96482c42c49a23b1f9f1fcb4e4' 
+Call log:
+  - Expect "ToHaveURLAsync" with timeout 5000ms
+    9 × unexpected value "http://127.0.0.1:63640/cs-CZ/product/e2e-cart-edea0f96482c42c49a23b1f9f1fcb4e4"
+   at Microsoft.Playwright.Core.AssertionsBase.ExpectImplAsync(String expression, FrameExpectOptions expectOptions, Object expected, String message, String title) in /_/src/Playwright/Core/AssertionsBase.cs:line 86
+   at Microsoft.Playwright.Core.AssertionsBase.ExpectImplAsync(String expression, ExpectedTextValue[] expectedText, Object expected, String message, String title, FrameExpectOptions options) in /_/src/Playwright/Core/AssertionsBase.cs:line 64
+   at Microsoft.Playwright.Core.AssertionsBase.ExpectImplAsync(String expression, ExpectedTextValue textValue, Object expected, String message, String title, FrameExpectOptions options) in /_/src/Playwright/Core/AssertionsBase.cs:line 56
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<In_stock_product_can_be_added_to_cart>b__4_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 115
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Scenarios.CriticalSmokeTests.<>c.<<In_stock_product_can_be_added_to_cart>b__4_0>d.MoveNext() in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Scenarios\CriticalSmokeTests.cs:line 121
+--- End of stack trace from previous location ---
+   at DesignStore.E2E.Tests.Infrastructure.E2ETestFixture.RunWithArtifactsAsync(String name, Func`2 action) in C:\Users\ondre\source\repos\WildSpirit\tests\DesignStore.E2E.Tests\Infrastructure\E2ETestFixture.cs:line 148

@@ -166,7 +166,7 @@ public sealed class EditCategoryRequestValidator : AbstractValidator<EditCategor
 {
     public EditCategoryRequestValidator()
     {
-        RuleFor(x => x).Must(x => x.Id != x.ParentCategoryId).WithMessage("Kategorie nemůže být sama sobě nadřazená.");
+        RuleFor(x => x).Must(x => !x.Id.HasValue || !x.ParentCategoryId.HasValue || x.Id.Value != x.ParentCategoryId.Value).WithMessage("Kategorie nemůže být sama sobě nadřazená.");
         RuleFor(x => x.ImageUrl).MaximumLength(500);
         RuleFor(x => x.BannerUrl).MaximumLength(500);
         RuleFor(x => x.Translations).NotEmpty();

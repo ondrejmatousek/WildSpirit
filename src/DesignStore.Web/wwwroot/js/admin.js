@@ -1,13 +1,150 @@
+document.querySelectorAll('[data-order-contact]').forEach(root => {
+    const modal = root.querySelector('[data-order-contact-modal]');
+    const form = root.querySelector('[data-order-contact-form]');
+    const error = root.querySelector('[data-order-contact-error]');
+    const open = () => modal?.showModal ? modal.showModal() : modal?.setAttribute('open', '');
+    const close = () => modal?.close ? modal.close() : modal?.removeAttribute('open');
+
+    root.querySelector('[data-order-contact-open]')?.addEventListener('click', open);
+    root.querySelectorAll('[data-order-contact-close]').forEach(button => button.addEventListener('click', close));
+    modal?.addEventListener('click', event => {
+        if (event.target === modal) close();
+    });
+
+    form?.addEventListener('submit', async event => {
+        event.preventDefault();
+        clearOrderContactErrors(form, error);
+
+        const submit = form.querySelector('[type="submit"]');
+        submit?.setAttribute('disabled', 'disabled');
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload.ok === false) {
+                showOrderContactErrors(form, payload.errors, error, payload.error);
+                return;
+            }
+
+            updateOrderContact(root, payload);
+            close();
+        } catch (e) {
+            if (error) {
+                error.textContent = e.message || 'Údaje se nepodařilo uložit.';
+                error.hidden = false;
+            }
+        } finally {
+            submit?.removeAttribute('disabled');
+        }
+    });
+
+    form?.querySelectorAll('input, select, textarea').forEach(input => {
+        input.addEventListener('input', () => clearSingleOrderContactError(input, error));
+        input.addEventListener('change', () => clearSingleOrderContactError(input, error));
+    });
+});
+
+function clearOrderContactErrors(form, error) {
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+
+    form.querySelectorAll('.field-error').forEach(element => element.remove());
+    form.querySelectorAll('.is-invalid').forEach(element => element.classList.remove('is-invalid'));
+}
+
+function clearSingleOrderContactError(input, error) {
+    input.classList.remove('is-invalid');
+    input.closest('label')?.querySelector('.field-error')?.remove();
+
+    if (error && !input.form?.querySelector('.field-error')) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+}
+
+function showOrderContactErrors(form, errors, error, fallback) {
+    const list = Array.isArray(errors) ? errors : [];
+
+    if (!list.length) {
+        if (error) {
+            error.textContent = fallback || 'Údaje se nepodařilo uložit.';
+            error.hidden = false;
+        }
+        return;
+    }
+
+    let firstInput = null;
+    for (const item of list) {
+        const field = item.field || item.Field || '';
+        const message = item.message || item.Message || fallback || 'Zkontrolujte pole.';
+        const input = field ? form.querySelector(`[name="${cssEscape(field)}"]`) : null;
+
+        if (!input) continue;
+
+        input.classList.add('is-invalid');
+        firstInput ??= input;
+
+        const label = input.closest('label');
+        if (label && !label.querySelector('.field-error')) {
+            const note = document.createElement('span');
+            note.className = 'field-error';
+            note.textContent = message;
+            label.appendChild(note);
+        }
+    }
+
+    if (error) {
+        error.textContent = fallback || 'Zkontrolujte zvýrazněná pole.';
+        error.hidden = false;
+    }
+
+    firstInput?.focus({ preventScroll: false });
+}
+
+function cssEscape(value) {
+    if (window.CSS?.escape) return CSS.escape(value);
+    return value.replace(/["\\]/g, '\\$&');
+}
+
+function updateOrderContact(root, payload) {
+    const billing = payload.billing || payload.billingAddress || {};
+    const shipping = payload.shipping || payload.shippingAddress || {};
+    const setText = (selector, value) => {
+        const element = root.querySelector(selector);
+        if (element) element.textContent = value || '';
+    };
+    const updateAddress = (kind, address) => {
+        const summary = root.querySelector(`[data-address-summary="${kind}"]`);
+        if (!summary) return;
+        summary.querySelector('[data-field="fullName"]').textContent = address.fullName || address.FullName || '';
+        summary.querySelector('[data-field="company"]').textContent = address.company || address.Company || '';
+        summary.querySelector('[data-field="street"]').textContent = address.street || address.Street || '';
+        summary.querySelector('[data-field="postalCode"]').textContent = address.postalCode || address.PostalCode || '';
+        summary.querySelector('[data-field="city"]').textContent = address.city || address.City || '';
+        summary.querySelector('[data-field="countryCode"]').textContent = address.countryCode || address.CountryCode || '';
+        setText(`[data-address-phone="${kind}"]`, address.phone || address.Phone || '');
+    };
+
+    setText('[data-contact-email]', payload.email || payload.Email || '');
+    updateAddress('billing', billing);
+    updateAddress('shipping', shipping);
+}
+
 document.querySelector('[data-add-variant]')?.addEventListener('click', () => {
     const root = document.querySelector('#variants');
     const i = root.children.length;
-    root.insertAdjacentHTML('beforeend', `<div class="nested-row"><label>SKU<input name="Variants[${i}].Sku" required></label><label>Název CZ<input name="Variants[${i}].Name" required></label><label>Název EN<input name="Variants[${i}].NameEn"></label><label>Název DE<input name="Variants[${i}].NameDe"></label><label>Cena<input name="Variants[${i}].Price" type="number" step="0.01"></label><label>Sklad<input name="Variants[${i}].StockQuantity" type="number" min="0" value="0"></label><label>Dostupnost<select name="Variants[${i}].AvailabilityStatus"><option value="1">InStock</option><option value="2">MadeToOrder</option><option value="3">Unavailable</option><option value="4">Discontinued</option></select></label></div>`);
+    root.insertAdjacentHTML('beforeend', `<div class="nested-row"><label>SKU<input name="Variants[${i}].Sku"></label><label>Název CZ<input name="Variants[${i}].Name"></label><label>Název EN<input name="Variants[${i}].NameEn"></label><label>Název DE<input name="Variants[${i}].NameDe"></label><label>Cena<input name="Variants[${i}].Price" type="number" step="0.01"></label><label>Sklad<input name="Variants[${i}].StockQuantity" type="number" min="0" value="0"></label><label>Dostupnost<select name="Variants[${i}].AvailabilityStatus"><option value="1">InStock</option><option value="2">MadeToOrder</option><option value="3">Unavailable</option><option value="4">Discontinued</option></select></label></div>`);
 });
 
 document.querySelector('[data-add-option]')?.addEventListener('click', () => {
     const root = document.querySelector('#options');
     const i = root.children.length;
-    root.insertAdjacentHTML('beforeend', `<div class="nested-row"><label>Název<input name="Options[${i}].Name" required></label><label>Typ<select name="Options[${i}].Type"><option value="1">Výběr</option><option value="2">Text</option><option value="3">Gravírování</option></select></label><label><input name="Options[${i}].IsRequired" type="checkbox" value="true"> Povinná</label><label>Hodnota<input name="Options[${i}].Values[0].Name"></label><label>Příplatek<input name="Options[${i}].Values[0].PriceAdjustment" type="number" step="0.01" value="0"></label></div>`);
+    root.insertAdjacentHTML('beforeend', `<div class="nested-row"><label>Název<input name="Options[${i}].Name"></label><label>Typ<select name="Options[${i}].Type"><option value="1">Výběr</option><option value="2">Text</option><option value="3">Gravírování</option></select></label><label><input name="Options[${i}].IsRequired" type="checkbox" value="true"> Povinná</label><label>Hodnota<input name="Options[${i}].Values[0].Name"></label><label>Příplatek<input name="Options[${i}].Values[0].PriceAdjustment" type="number" step="0.01" value="0"></label></div>`);
 });
 
 document.querySelector('[data-translate-product]')?.addEventListener('click', () => {
@@ -21,6 +158,19 @@ document.querySelector('[data-translate-product]')?.addEventListener('click', ()
     writeTranslation('en', createDraft(source, 'en'));
     writeTranslation('de', createDraft(source, 'de'));
     showTranslationNote(note, 'Návrhy překladů jsou vyplněné. Berte je jako pracovní text a před uložením je zkontrolujte.');
+});
+
+document.querySelector('[data-translate-category]')?.addEventListener('click', () => {
+    const source = readTranslation('cs-CZ');
+    const note = document.querySelector('[data-translation-note]');
+    if (!source.Name && !source.ShortDescription && !source.LongDescription) {
+        showTranslationNote(note, 'Nejdřív vyplňte český název nebo popis kategorie.');
+        return;
+    }
+
+    writeTranslation('en', createCategoryDraft(source, 'en'));
+    writeTranslation('de', createCategoryDraft(source, 'de'));
+    showTranslationNote(note, 'Návrhy překladů kategorie jsou vyplněné. Před uložením je prosím ještě lidsky zkontrolujte.');
 });
 
 document.querySelectorAll('[data-translation-tab]').forEach(button => {
@@ -127,6 +277,23 @@ function createDraft(source, culture) {
         Materials: materials,
         CareInstructions: care,
         ShippingInformation: shipping,
+        SeoTitle: seoTitle.substring(0, 70),
+        SeoDescription: seoDescription.substring(0, 170)
+    };
+}
+
+function createCategoryDraft(source, culture) {
+    const name = translateText(source.Name, culture);
+    const shortDescription = translateText(source.ShortDescription, culture);
+    const longDescription = translateText(source.LongDescription, culture);
+    const seoTitle = translateText(source.SeoTitle || source.Name, culture);
+    const seoDescription = translateText(source.SeoDescription || source.ShortDescription || source.LongDescription, culture);
+
+    return {
+        Name: name,
+        Slug: slugify(name || source.Name),
+        ShortDescription: shortDescription,
+        LongDescription: longDescription,
         SeoTitle: seoTitle.substring(0, 70),
         SeoDescription: seoDescription.substring(0, 170)
     };

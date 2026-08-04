@@ -353,7 +353,13 @@ public sealed class E2ETestFixture : IAsyncLifetime
     private void StartApplication()
     {
         var webProject = Path.Combine(RepoRoot, "src", "DesignStore.Web", "DesignStore.Web.csproj");
-        var startInfo = new ProcessStartInfo("dotnet", $"run --project \"{webProject}\" --no-build --no-restore --no-launch-profile")
+        var configuration =
+#if DEBUG
+            "Debug";
+#else
+            "Release";
+#endif
+        var startInfo = new ProcessStartInfo("dotnet", $"run --project \"{webProject}\" -c {configuration} --no-build --no-restore --no-launch-profile")
         {
             WorkingDirectory = RepoRoot,
             UseShellExecute = false,

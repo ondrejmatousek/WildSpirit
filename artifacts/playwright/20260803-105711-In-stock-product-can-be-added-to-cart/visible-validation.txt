@@ -1,0 +1,1 @@
+Validation failed: -- Configuration: Pole 'Configuration' nesmí být prázdné. Severity: Error

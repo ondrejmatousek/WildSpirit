@@ -2,6 +2,7 @@ using DesignStore.Application.Catalog;
 using DesignStore.Application.Abstractions.Files;
 using DesignStore.Domain.Catalog;
 using DesignStore.Infrastructure.Catalog;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 namespace DesignStore.Tests.Infrastructure;
 [Collection("SqlServer database")]
@@ -33,6 +34,178 @@ public sealed class CatalogAdminSqlTests(SqlServerDatabaseFixture database)
         Assert.Contains(await service.GetCollectionsAsync(default),x=>x.Name=="Atelier SQL");
         Assert.Contains(await service.GetMaterialsAsync(default),x=>x.Name=="Dub SQL");
         Assert.Contains(await service.GetColorsAsync(default),x=>x.Name=="Cerna SQL");
+    }
+    [Fact] public async Task Category_admin_crud_saves_reads_and_updates_translations_and_images()
+    {
+        var slugSuffix=Guid.NewGuid().ToString("N");
+        Guid categoryId;
+        await using(var db=database.CreateDb())
+        {
+            var service=Service(db);
+            categoryId=await service.SaveCategoryAsync(new EditCategoryRequest
+            {
+                DisplayOrder=12,
+                IsPublished=true,
+                ImageUrl="/media/category-image/categories/test/category.webp",
+                BannerUrl="/media/category-image/categories/test/banner.webp",
+                Translations=
+                [
+                    new CategoryTranslationInput{Culture="cs-CZ",Name=" Kožené lampy ",Slug="",ShortDescription=" Krátký popis ",LongDescription=" Dlouhý popis ",SeoTitle=" Kožené lampy WildSpirit ",SeoDescription=" Autorské kožené lampy. "},
+                    new CategoryTranslationInput{Culture="en",Name=" Leather lamps ",Slug=$"Leather Lamps {slugSuffix}",ShortDescription="Short",LongDescription="Long",SeoTitle="Leather lamps",SeoDescription="Leather lamp category"},
+                    new CategoryTranslationInput{Culture="de",Name=" Lederlampen ",Slug=$"Leder Lampen {slugSuffix}",ShortDescription="Kurz",LongDescription="Lang"}
+                ]
+            },"test",default);
+        }
+
+        await using(var db=database.CreateDb())
+        {
+            var service=Service(db);
+            var loaded=await service.GetCategoryAsync(categoryId,default);
+
+            Assert.NotNull(loaded);
+            Assert.Equal(12,loaded.DisplayOrder);
+            Assert.True(loaded.IsPublished);
+            Assert.Equal("/media/category-image/categories/test/category.webp",loaded.ImageUrl);
+            Assert.Equal("/media/category-image/categories/test/banner.webp",loaded.BannerUrl);
+            Assert.Equal("kozene-lampy",loaded.Translations.Single(x=>x.Culture=="cs-CZ").Slug);
+            Assert.Equal($"leather-lamps-{slugSuffix}",loaded.Translations.Single(x=>x.Culture=="en").Slug);
+            Assert.Equal($"leder-lampen-{slugSuffix}",loaded.Translations.Single(x=>x.Culture=="de").Slug);
+
+            loaded.DisplayOrder=3;
+            loaded.IsPublished=false;
+            loaded.ImageUrl="/media/category-image/categories/test/category-edited.webp";
+            loaded.BannerUrl="/media/category-image/categories/test/banner-edited.webp";
+            loaded.Translations.Single(x=>x.Culture=="cs-CZ").Name="Kožené lampy edit";
+            loaded.Translations.Single(x=>x.Culture=="cs-CZ").Slug="";
+            foreach(var optional in loaded.Translations.Where(x=>x.Culture!="cs-CZ"))
+            {
+                optional.Name="";
+                optional.Slug="";
+                optional.ShortDescription="";
+                optional.LongDescription="";
+                optional.SeoTitle="";
+                optional.SeoDescription="";
+            }
+            await service.SaveCategoryAsync(loaded,"test",default);
+        }
+
+        await using(var db=database.CreateDb())
+        {
+            var updated=await Service(db).GetCategoryAsync(categoryId,default);
+
+            Assert.NotNull(updated);
+            Assert.Equal(3,updated.DisplayOrder);
+            Assert.False(updated.IsPublished);
+            Assert.Equal("/media/category-image/categories/test/category-edited.webp",updated.ImageUrl);
+            Assert.Equal("/media/category-image/categories/test/banner-edited.webp",updated.BannerUrl);
+            Assert.Single(updated.Translations);
+            Assert.Equal("kozene-lampy-edit",updated.Translations.Single().Slug);
+        }
+    }
+    [Fact] public async Task Category_create_ignores_empty_optional_translation_tabs_and_normalizes_slug()
+    {
+        await using var db=database.CreateDb();
+        var service=Service(db);
+        var id=await service.SaveCategoryAsync(new EditCategoryRequest
+        {
+            Translations=
+            [
+                new CategoryTranslationInput{Culture=" cs-CZ ",Name=$" Kožené lampy Aurora {Guid.NewGuid():N} ",Slug="",ShortDescription="  "},
+                new CategoryTranslationInput{Culture="en",Name="",Slug="",ShortDescription="  "},
+                new CategoryTranslationInput{Culture="de"}
+            ]
+        },"test",default);
+
+        var translations=await db.CategoryTranslations.AsNoTracking().Where(x=>x.CategoryId==id).ToListAsync();
+
+        Assert.Single(translations);
+        Assert.Equal("cs-CZ",translations.Single().Culture);
+        Assert.StartsWith("kozene-lampy-aurora-",translations.Single().Slug);
+    }
+    [Fact] public async Task Category_duplicate_slug_is_reported_before_database_unique_index_failure()
+    {
+        var slug=$"duplicate-category-{Guid.NewGuid():N}";
+        await using var db=database.CreateDb();
+        var service=Service(db);
+        await service.SaveCategoryAsync(new EditCategoryRequest{Translations=[new CategoryTranslationInput{Culture="cs-CZ",Name="První",Slug=slug}]},"test",default);
+
+        var ex=await Assert.ThrowsAsync<ValidationException>(()=>service.SaveCategoryAsync(new EditCategoryRequest{Translations=[new CategoryTranslationInput{Culture="cs-CZ",Name="Druhá",Slug=slug}]},"test",default));
+
+        Assert.Contains(slug,ex.Message);
+    }
+    [Fact] public async Task Reference_admin_crud_saves_material_color_and_collection()
+    {
+        await using var db=database.CreateDb();
+        var service=Service(db);
+        var suffix=Guid.NewGuid().ToString("N")[..8];
+
+        var materialId=await service.SaveReferenceAsync(new ReferenceItemRequest
+        {
+            Type="material",
+            Code=$"MAT-{suffix}",
+            Name="Dub masiv",
+            NameEn="Solid oak",
+            NameDe="Massiveiche",
+            IsActive=true
+        },"test",default);
+        var colorId=await service.SaveReferenceAsync(new ReferenceItemRequest
+        {
+            Type="color",
+            Code=$"COL-{suffix}",
+            Name="Koňaková",
+            NameEn="Cognac",
+            Hex="#9B5B2E",
+            IsActive=true
+        },"test",default);
+        var collectionId=await service.SaveReferenceAsync(new ReferenceItemRequest
+        {
+            Type="collection",
+            Code=$"COLL-{suffix}",
+            Name="Atelier rutina",
+            NameEn="Atelier routine",
+            Slug=$"atelier-rutina-{suffix}",
+            IsActive=true
+        },"test",default);
+
+        await service.SaveReferenceAsync(new ReferenceItemRequest
+        {
+            Id=materialId,
+            Type="material",
+            Code=$"MAT-{suffix}",
+            Name="Dub upravený",
+            NameEn="Edited oak",
+            IsActive=false
+        },"test",default);
+        await service.SaveReferenceAsync(new ReferenceItemRequest
+        {
+            Id=colorId,
+            Type="color",
+            Code=$"COL-{suffix}",
+            Name="Koňaková edit",
+            Hex="#8A4F27",
+            IsActive=false
+        },"test",default);
+        await service.SaveReferenceAsync(new ReferenceItemRequest
+        {
+            Id=collectionId,
+            Type="collection",
+            Code=$"COLL-{suffix}",
+            Name="Atelier rutina edit",
+            Slug=$"atelier-rutina-edit-{suffix}",
+            IsActive=false
+        },"test",default);
+
+        var material=await db.Materials.AsNoTracking().Include(x=>x.Translations).SingleAsync(x=>x.Id==materialId);
+        var color=await db.Colors.AsNoTracking().Include(x=>x.Translations).SingleAsync(x=>x.Id==colorId);
+        var collection=await db.Collections.AsNoTracking().Include(x=>x.Translations).SingleAsync(x=>x.Id==collectionId);
+
+        Assert.False(material.IsActive);
+        Assert.Equal("Dub upravený",material.Translations.Single(x=>x.Culture=="cs-CZ").Name);
+        Assert.False(color.IsActive);
+        Assert.Equal("#8A4F27",color.Hex);
+        Assert.Equal("Koňaková edit",color.Translations.Single(x=>x.Culture=="cs-CZ").Name);
+        Assert.False(collection.IsPublished);
+        Assert.Equal($"atelier-rutina-edit-{suffix}",collection.Translations.Single(x=>x.Culture=="cs-CZ").Slug);
     }
     [Fact] public async Task New_product_sku_is_generated_from_existing_product_sequence()
     {

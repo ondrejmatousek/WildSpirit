@@ -1,4 +1,245 @@
 @using DesignStore.Domain.Commerce
 @model DesignStore.Application.Commerce.OrderDetail
-@{ViewData["Title"]=Model.Number;}
-<h1>@Model.Number</h1><p>@Model.Email · @Model.Status · @Model.PaymentStatus</p><table><tbody>@foreach(var i in Model.Items){<tr><td>@i.Name @i.Variant</td><td>@i.Quantity × @i.UnitPrice.ToString("N0")</td><td>@i.Total.ToString("N0") Kč</td></tr>}</tbody></table><p>Celkem <strong>@Model.Total.ToString("N0") @Model.Currency</strong></p><form asp-action="Status" method="post"><input type="hidden" name="id" value="@Model.Id"/><select name="status" asp-items="Html.GetEnumSelectList<OrderStatus>()"></select><button type="submit">Změnit stav</button></form>@if(Model.Status is not OrderStatus.Cancelled and not OrderStatus.Shipped and not OrderStatus.Completed){<form asp-action="Cancel" method="post"><input type="hidden" name="id" value="@Model.Id"/><button type="submit">Zrušit a vrátit sklad</button></form>}<h2>Historie</h2><ul>@foreach(var h in Model.History){<li>@h</li>}</ul>
+@{
+    ViewData["Title"] = Model.Number;
+    var billing = Model.Addresses.FirstOrDefault(x => x.Type == AddressType.Billing) ?? new DesignStore.Application.Commerce.OrderAddressView(AddressType.Billing, "", "", "", "", "", "CZ", "");
+    var shipping = Model.Addresses.FirstOrDefault(x => x.Type == AddressType.Shipping) ?? new DesignStore.Application.Commerce.OrderAddressView(AddressType.Shipping, "", "", "", "", "", "CZ", "");
+}
+
+<div class="admin-heading order-detail-heading">
+    <div>
+        <p class="admin-kicker">Objednávka</p>
+        <h1>@Model.Number</h1>
+        <p class="order-meta">@Model.CreatedAtUtc.ToLocalTime().ToString("d. M. yyyy HH:mm") · @Model.Email</p>
+    </div>
+    <a class="secondary" asp-action="Index">Zpět na objednávky</a>
+</div>
+
+<section class="order-overview">
+    <article class="admin-card metric-card">
+        <span>Stav</span>
+        <strong>@Model.Status</strong>
+    </article>
+    <article class="admin-card metric-card">
+        <span>Platba</span>
+        <strong>@Model.PaymentStatus</strong>
+    </article>
+    <article class="admin-card metric-card">
+        <span>Doprava</span>
+        <strong>@(Model.ShippingMethod == "pickup" ? "Osobní odběr" : "Kurýr")</strong>
+    </article>
+    <article class="admin-card metric-card">
+        <span>Celkem</span>
+        <strong>@Model.Total.ToString("N0") @Model.Currency</strong>
+    </article>
+</section>
+
+<div class="order-detail-grid">
+    <section class="admin-card order-items-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Položky objednávky</h2>
+                <p>Historický snapshot názvu, varianty, SKU a ceny.</p>
+            </div>
+        </div>
+        <div class="order-items">
+            @foreach (var item in Model.Items)
+            {
+                <article class="order-item-row">
+                    <div class="order-item-image">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" alt="" />
+                        }
+                    </div>
+                    <div>
+                        <h3>@item.Name</h3>
+                        @if (!string.IsNullOrWhiteSpace(item.Variant))
+                        {
+                            <p>@item.Variant</p>
+                        }
+                        <small>SKU @item.Sku</small>
+                        @if (item.Configuration.Count > 0)
+                        {
+                            <ul class="order-config">
+                                @foreach (var config in item.Configuration)
+                                {
+                                    <li>@config</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                    <div class="number-cell">
+                        <span>@item.Quantity × @item.UnitPrice.ToString("N0") @Model.Currency</span>
+                        <strong>@item.Total.ToString("N0") @Model.Currency</strong>
+                    </div>
+                </article>
+            }
+        </div>
+        <dl class="order-totals">
+            <div><dt>Mezisoučet</dt><dd>@Model.Subtotal.ToString("N0") @Model.Currency</dd></div>
+            @if (Model.Discount > 0)
+            {
+                <div><dt>Sleva</dt><dd>-@Model.Discount.ToString("N0") @Model.Currency</dd></div>
+            }
+            <div><dt>Doprava</dt><dd>@Model.Shipping.ToString("N0") @Model.Currency</dd></div>
+            <div><dt>DPH</dt><dd>@Model.Tax.ToString("N0") @Model.Currency</dd></div>
+            <div class="grand-total"><dt>Celkem</dt><dd>@Model.Total.ToString("N0") @Model.Currency</dd></div>
+        </dl>
+    </section>
+
+    <aside class="order-side">
+        <section class="admin-card order-contact-card" data-order-contact>
+            <div class="card-title-row">
+                <div>
+                    <h2>Kontakt a adresy</h2>
+                    <p>Zákaznické údaje pro komunikaci, fakturaci a doručení.</p>
+                </div>
+                <button class="icon-button" type="button" data-order-contact-open aria-label="Upravit kontakt a adresy">✎</button>
+            </div>
+            <p class="contact-line"><span>E-mail</span><strong data-contact-email>@Model.Email</strong></p>
+            <div class="address-list">
+                <article class="address-card">
+                    <h3>Fakturační</h3>
+                    <p data-address-summary="billing">
+                        <strong data-field="fullName">@billing.FullName</strong><br />
+                        <span data-field="company">@billing.Company</span><br data-company-break="billing" />
+                        <span data-field="street">@billing.Street</span><br />
+                        <span data-field="postalCode">@billing.PostalCode</span> <span data-field="city">@billing.City</span><br />
+                        <span data-field="countryCode">@billing.CountryCode</span>
+                    </p>
+                    <p class="muted-text" data-address-phone="billing">@billing.Phone</p>
+                </article>
+                <article class="address-card">
+                    <h3>Dodací</h3>
+                    <p data-address-summary="shipping">
+                        <strong data-field="fullName">@shipping.FullName</strong><br />
+                        <span data-field="company">@shipping.Company</span><br data-company-break="shipping" />
+                        <span data-field="street">@shipping.Street</span><br />
+                        <span data-field="postalCode">@shipping.PostalCode</span> <span data-field="city">@shipping.City</span><br />
+                        <span data-field="countryCode">@shipping.CountryCode</span>
+                    </p>
+                    <p class="muted-text" data-address-phone="shipping">@shipping.Phone</p>
+                </article>
+            </div>
+
+            <dialog class="admin-modal" data-order-contact-modal>
+                <form class="admin-form order-contact-form" asp-action="Contact" method="post" data-order-contact-form>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-head">
+                        <div>
+                            <p class="admin-kicker">Objednávka @Model.Number</p>
+                            <h2>Upravit kontakt a adresy</h2>
+                        </div>
+                        <button class="icon-button" type="button" data-order-contact-close aria-label="Zavřít">×</button>
+                    </div>
+                    <div class="admin-alert admin-alert-error" data-order-contact-error hidden></div>
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <label class="wide">E-mail<input name="Email" type="email" value="@Model.Email" autocomplete="email" required /></label>
+
+                    <fieldset>
+                        <legend>Fakturační adresa</legend>
+                        <div class="form-grid compact">
+                            <label>Jméno<input name="BillingAddress.FullName" value="@billing.FullName" required /></label>
+                            <label>Firma<input name="BillingAddress.Company" value="@billing.Company" /></label>
+                            <label class="wide">Ulice<input name="BillingAddress.Street" value="@billing.Street" required /></label>
+                            <label>Město<input name="BillingAddress.City" value="@billing.City" required /></label>
+                            <label>PSČ<input name="BillingAddress.PostalCode" value="@billing.PostalCode" required /></label>
+                            <label>Země<input name="BillingAddress.CountryCode" value="@billing.CountryCode" maxlength="2" required /></label>
+                            <label class="wide">Telefon<input name="BillingAddress.Phone" value="@billing.Phone" /></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Dodací adresa</legend>
+                        <div class="form-grid compact">
+                            <label>Jméno<input name="ShippingAddress.FullName" value="@shipping.FullName" required /></label>
+                            <label>Firma<input name="ShippingAddress.Company" value="@shipping.Company" /></label>
+                            <label class="wide">Ulice<input name="ShippingAddress.Street" value="@shipping.Street" required /></label>
+                            <label>Město<input name="ShippingAddress.City" value="@shipping.City" required /></label>
+                            <label>PSČ<input name="ShippingAddress.PostalCode" value="@shipping.PostalCode" required /></label>
+                            <label>Země<input name="ShippingAddress.CountryCode" value="@shipping.CountryCode" maxlength="2" required /></label>
+                            <label class="wide">Telefon<input name="ShippingAddress.Phone" value="@shipping.Phone" /></label>
+                        </div>
+                    </fieldset>
+
+                    <div class="modal-actions">
+                        <button class="secondary" type="button" data-order-contact-close>Zrušit</button>
+                        <button class="secondary primary" type="submit">Uložit</button>
+                    </div>
+                </form>
+            </dialog>
+        </section>
+
+        <section class="admin-card">
+            <h2>Změna stavu</h2>
+            <form class="order-action-form" asp-action="Status" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <select name="status" asp-items="Html.GetEnumSelectList<OrderStatus>()"></select>
+                <button class="secondary" type="submit">Změnit stav</button>
+            </form>
+            @if (Model.Status is not OrderStatus.Cancelled and not OrderStatus.Shipped and not OrderStatus.Completed)
+            {
+                <form class="order-action-form danger" asp-action="Cancel" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button class="secondary" type="submit">Zrušit a vrátit sklad</button>
+                </form>
+            }
+        </section>
+    </aside>
+</div>
+
+<section class="admin-card">
+    <div class="card-title-row">
+        <div>
+            <h2>Skladové pohyby</h2>
+            <p>Kontrola, že se objednané kusy odečetly ze skladu.</p>
+        </div>
+    </div>
+    @if (Model.InventoryMovements.Count == 0)
+    {
+        <p class="admin-empty">U této objednávky zatím není žádný skladový pohyb.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                <tr>
+                    <th>Čas</th>
+                    <th>Typ</th>
+                    <th>Položka</th>
+                    <th>SKU</th>
+                    <th>Změna</th>
+                    <th>Stav skladu</th>
+                    <th>Důvod</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var movement in Model.InventoryMovements)
+                {
+                    <tr>
+                        <td>@movement.CreatedAtUtc.ToLocalTime().ToString("d. M. HH:mm")</td>
+                        <td>@movement.Type</td>
+                        <td>@movement.ItemName</td>
+                        <td>@movement.Sku</td>
+                        <td class="@(movement.QuantityChange < 0 ? "stock-negative" : "stock-positive")">@movement.QuantityChange</td>
+                        <td>@movement.PreviousQuantity → @movement.NewQuantity</td>
+                        <td>@movement.Reason</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section class="admin-card">
+    <h2>Historie stavů</h2>
+    <ul class="order-history">
+        @foreach (var history in Model.History)
+        {
+            <li>@history</li>
+        }
+    </ul>
+</section>
