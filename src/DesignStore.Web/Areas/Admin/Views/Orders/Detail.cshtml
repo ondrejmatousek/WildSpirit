@@ -230,12 +230,31 @@
             </dialog>
         </section>
 
+        @if (Model.GiftVoucherCodes.Count > 0)
+        {
+            <section class="admin-card gift-voucher-admin-card">
+                <h2>Dárkové poukazy</h2>
+                <p>Unikátní kódy vytvořené touto objednávkou.</p>
+                <div class="gift-voucher-admin-list">
+                    @foreach (var voucher in Model.GiftVoucherCodes)
+                    {
+                        <article>
+                            <span>@voucher.Value.ToString("N0") @Model.Currency</span>
+                            <strong>@voucher.Code</strong>
+                            <small>
+                                @(voucher.IsActive ? "Aktivní" : "Čeká na zaplacení")
+                                · použito @voucher.UsedCount / @(voucher.MaximumUses?.ToString() ?? "∞")
+                            </small>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
         <section class="admin-card">
             <h2>Změna stavu</h2>
             <form class="order-action-form" asp-action="Status" method="post">
                 <input type="hidden" name="id" value="@Model.Id" />
-                <select name="status" asp-items="Html.GetEnumSelectList
-                <OrderStatus>()">
+                <select name="status" asp-items="Html.GetEnumSelectList<OrderStatus>()">
                 </select>
                 <button class="secondary" type="submit">Změnit stav</button>
             </form>
@@ -261,7 +280,7 @@
     {
         <p class="admin-empty">U této objednávky zatím není žádný skladový pohyb.</p>
     }
-    else
+else
     {
         <div class="admin-table-wrap">
             <table class="admin-table">

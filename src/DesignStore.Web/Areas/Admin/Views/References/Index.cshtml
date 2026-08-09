@@ -1,59 +1,56 @@
 @model ReferenceItemRequest
-@{ViewData["Title"]="Kolekce a materiály";var collections=(IReadOnlyList
-<AdminLookup>)ViewBag.Collections;var materials=(IReadOnlyList
-    <AdminLookup>)ViewBag.Materials;var colors=(IReadOnlyList
-        <AdminLookup>)ViewBag.Colors;}
-            <div class="admin-heading">
-                <div>
-                    <p class="eyebrow">Katalog</p>
-                    <h1>Referenční data</h1>
-                </div>
-            </div>
-            <div class="admin-columns">
-                <section class="admin-card">
-                    <h2>Nová položka</h2>
-                    <form asp-action="Save" method="post" class="admin-form">
-                        <label>Typ
-                            <select asp-for="Type">
-                                <option value="material">Materiál</option>
-                                <option value="color">Barva</option>
-                                <option value="collection">Kolekce</option>
-                            </select>
-                        </label>
-                        <label>Kód
-                            <input asp-for="Code"/>
-                        </label>
-                        <label>Název CZ
-                            <input asp-for="Name"/>
-                        </label>
-                        <label>Název EN
-                            <input asp-for="NameEn"/>
-                        </label>
-                        <label>Název DE
-                            <input asp-for="NameDe"/>
-                        </label>
-                        <label>Slug kolekce
-                            <input asp-for="Slug"/>
-                        </label>
-                        <label>HEX barvy
-                            <input asp-for="Hex"/>
-                        </label>
-                        <label>
-                            <input asp-for="IsActive"/> Aktivní</label>
-                        <button class="button">Uložit</button>
-                    </form>
-                </section>
-                <section class="admin-card">
-                    <h2>Kolekce</h2>
-                    @foreach(var x in collections){
-                        <p>@x.Name</p>
-                    }
-                    <h2>Materiály</h2>
-                    @foreach(var x in materials){
-                        <p>@x.Name</p>
-                    }
-                    <h2>Barvy</h2>
-                    @foreach(var x in colors){
-                        <p>@x.Name</p>
-                    }</section>
-            </div>
+@{ViewData["Title"]="Kolekce a materiály";var collections=(IReadOnlyList<AdminLookup>)ViewBag.Collections;var materials=(IReadOnlyList<AdminLookup>)ViewBag.Materials;var colors=(IReadOnlyList<AdminLookup>)ViewBag.Colors;}
+<div class="admin-heading">
+    <div>
+        <p class="eyebrow">Katalog</p>
+        <h1>Referenční data</h1>
+    </div>
+</div>
+<div class="admin-columns">
+    <section class="admin-card">
+        <h2>Nová položka</h2>
+        <form asp-action="Save" method="post" class="admin-form">
+            <label>Typ
+                <select asp-for="Type">
+                    <option value="material">Materiál</option>
+                    <option value="color">Barva</option>
+                    <option value="collection">Kolekce</option>
+                </select>
+            </label>
+            <label>Kód
+                <input asp-for="Code"/>
+            </label>
+            <label>Název CZ
+                <input asp-for="Name"/>
+            </label>
+            <label>Název EN
+                <input asp-for="NameEn"/>
+            </label>
+            <label>Název DE
+                <input asp-for="NameDe"/>
+            </label>
+            <label>Slug kolekce
+                <input asp-for="Slug"/>
+            </label>
+            <label>HEX barvy
+                <input asp-for="Hex"/>
+            </label>
+            <label>
+                <input asp-for="IsActive"/> Aktivní</label>
+            <button class="button">Uložit</button>
+        </form>
+    </section>
+    <section class="admin-card">
+        <h2>Kolekce</h2>
+        @foreach(var x in collections){
+            <p>@x.Name</p>
+        }
+        <h2>Materiály</h2>
+        @foreach(var x in materials){
+            <p>@x.Name</p>
+        }
+        <h2>Barvy</h2>
+        @foreach(var x in colors){
+            <p>@x.Name</p>
+        }</section>
+    </div>

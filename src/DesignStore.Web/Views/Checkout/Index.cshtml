@@ -4,17 +4,19 @@
 @{
     ViewData["Title"] = "Pokladna";
     var cart = (CartView)ViewBag.Cart;
+    var culture = ViewContext.RouteData.Values["culture"];
+    const decimal standardShipping = 250m;
+    const decimal pickupShipping = 0m;
+    var selectedShipping = Model.ShippingMethod == "pickup" ? pickupShipping : standardShipping;
+    var totalWithShipping = cart.Total + selectedShipping;
 }
 
 <section class="checkout-header">
-    <p class="eyebrow">Bezpečné dokončení</p>
     <h1>Pokladna</h1>
-    <p>Částka bude před vytvořením objednávky znovu spočítána na serveru.</p>
 </section>
 
-<form method="post" class="checkout-form" data-checkout-form novalidate>
-    <div class="checkout-validation" asp-validation-summary="ModelOnly">
-    </div>
+<form method="post" class="checkout-form" data-checkout-form data-cart-total="@cart.Total" data-standard-shipping="@standardShipping" data-pickup-shipping="@pickupShipping" data-testid="checkout-form" novalidate>
+    <div class="checkout-validation" asp-validation-summary="ModelOnly"></div>
     <input asp-for="IdempotencyKey" type="hidden" />
 
     <div class="checkout-main">
@@ -22,49 +24,48 @@
             <h2>Kontakt</h2>
             <label>
                 E-mail
-                <input asp-for="Email" autocomplete="email" />
-                <span asp-validation-for="Email">
-                </span>
+                <input asp-for="Email" autocomplete="email" data-testid="checkout-email" />
+                <span asp-validation-for="Email"></span>
             </label>
         </section>
 
         <fieldset class="checkout-card checkout-address">
             <legend>Fakturační adresa</legend>
             <div class="checkout-fields">
-                <label>Jméno
-                    <input asp-for="BillingAddress.FullName" autocomplete="name" />
-                    <span asp-validation-for="BillingAddress.FullName">
-                    </span>
+                <label>
+                    Jméno
+                    <input asp-for="BillingAddress.FullName" autocomplete="name" data-testid="checkout-billing-name" />
+                    <span asp-validation-for="BillingAddress.FullName"></span>
                 </label>
-                <label>Firma
-                    <input asp-for="BillingAddress.Company" autocomplete="organization" />
-                    <span asp-validation-for="BillingAddress.Company">
-                    </span>
+                <label>
+                    Firma
+                    <input asp-for="BillingAddress.Company" autocomplete="organization" data-testid="checkout-billing-company" />
+                    <span asp-validation-for="BillingAddress.Company"></span>
                 </label>
-                <label>Ulice
-                    <input asp-for="BillingAddress.Street" autocomplete="address-line1" />
-                    <span asp-validation-for="BillingAddress.Street">
-                    </span>
+                <label>
+                    Ulice
+                    <input asp-for="BillingAddress.Street" autocomplete="address-line1" data-testid="checkout-billing-street" />
+                    <span asp-validation-for="BillingAddress.Street"></span>
                 </label>
-                <label>Město
-                    <input asp-for="BillingAddress.City" autocomplete="address-level2" />
-                    <span asp-validation-for="BillingAddress.City">
-                    </span>
+                <label>
+                    Město
+                    <input asp-for="BillingAddress.City" autocomplete="address-level2" data-testid="checkout-billing-city" />
+                    <span asp-validation-for="BillingAddress.City"></span>
                 </label>
-                <label>PSČ
-                    <input asp-for="BillingAddress.PostalCode" autocomplete="postal-code" />
-                    <span asp-validation-for="BillingAddress.PostalCode">
-                    </span>
+                <label>
+                    PSČ
+                    <input asp-for="BillingAddress.PostalCode" autocomplete="postal-code" data-testid="checkout-billing-postal-code" />
+                    <span asp-validation-for="BillingAddress.PostalCode"></span>
                 </label>
-                <label>Země
-                    <input asp-for="BillingAddress.CountryCode" maxlength="2" autocomplete="country" />
-                    <span asp-validation-for="BillingAddress.CountryCode">
-                    </span>
+                <label>
+                    Země
+                    <input asp-for="BillingAddress.CountryCode" maxlength="2" autocomplete="country" data-testid="checkout-billing-country" />
+                    <span asp-validation-for="BillingAddress.CountryCode"></span>
                 </label>
-                <label>Telefon
-                    <input asp-for="BillingAddress.Phone" autocomplete="tel" />
-                    <span asp-validation-for="BillingAddress.Phone">
-                    </span>
+                <label>
+                    Telefon
+                    <input asp-for="BillingAddress.Phone" autocomplete="tel" data-testid="checkout-billing-phone" />
+                    <span asp-validation-for="BillingAddress.Phone"></span>
                 </label>
             </div>
         </fieldset>
@@ -77,30 +78,30 @@
         <fieldset class="checkout-card checkout-shipping">
             <legend>Dodací adresa</legend>
             <div class="checkout-fields">
-                <label>Jméno
+                <label>
+                    Jméno
                     <input asp-for="ShippingAddress.FullName" />
-                    <span asp-validation-for="ShippingAddress.FullName">
-                    </span>
+                    <span asp-validation-for="ShippingAddress.FullName"></span>
                 </label>
-                <label>Ulice
+                <label>
+                    Ulice
                     <input asp-for="ShippingAddress.Street" />
-                    <span asp-validation-for="ShippingAddress.Street">
-                    </span>
+                    <span asp-validation-for="ShippingAddress.Street"></span>
                 </label>
-                <label>Město
+                <label>
+                    Město
                     <input asp-for="ShippingAddress.City" />
-                    <span asp-validation-for="ShippingAddress.City">
-                    </span>
+                    <span asp-validation-for="ShippingAddress.City"></span>
                 </label>
-                <label>PSČ
+                <label>
+                    PSČ
                     <input asp-for="ShippingAddress.PostalCode" />
-                    <span asp-validation-for="ShippingAddress.PostalCode">
-                    </span>
+                    <span asp-validation-for="ShippingAddress.PostalCode"></span>
                 </label>
-                <label>Země
+                <label>
+                    Země
                     <input asp-for="ShippingAddress.CountryCode" maxlength="2" />
-                    <span asp-validation-for="ShippingAddress.CountryCode">
-                    </span>
+                    <span asp-validation-for="ShippingAddress.CountryCode"></span>
                 </label>
             </div>
         </fieldset>
@@ -127,31 +128,71 @@
                     <strong>-@cart.Discount.ToString("N0") Kč</strong>
                 </div>
             }
+            <div class="checkout-summary-row">
+                <span>Doprava</span>
+                <strong data-shipping-total data-testid="checkout-shipping-total">@(selectedShipping == 0 ? "zdarma" : $"{selectedShipping:N0} Kč")</strong>
+            </div>
             <div class="checkout-summary-total">
-                <span>K úhradě</span>
-                <strong>od @cart.Total.ToString("N0") Kč</strong>
+                <span>K úhradě včetně dopravy</span>
+                <strong data-grand-total data-testid="checkout-grand-total">@totalWithShipping.ToString("N0") Kč</strong>
             </div>
         </section>
 
         <fieldset class="checkout-card checkout-options">
             <legend>Doprava</legend>
             <label>
-                <input asp-for="ShippingMethod" type="radio" value="standard" checked /> Kurýr 250 Kč</label>
+                <input asp-for="ShippingMethod" type="radio" value="standard" checked="@(Model.ShippingMethod != "pickup")" data-shipping-option data-testid="checkout-shipping-standard" />
+                Kurýr 250 Kč
+            </label>
             <label>
-                <input asp-for="ShippingMethod" type="radio" value="pickup" /> Osobní odběr zdarma</label>
+                <input asp-for="ShippingMethod" type="radio" value="pickup" checked="@(Model.ShippingMethod == "pickup")" data-shipping-option data-testid="checkout-shipping-pickup" />
+                Osobní odběr zdarma
+            </label>
         </fieldset>
 
         <fieldset class="checkout-card checkout-options">
             <legend>Platba</legend>
             <label>
-                <input asp-for="PaymentMethod" type="radio" value="BankTransfer" checked /> Bankovní převod</label>
+                <input asp-for="PaymentMethod" type="radio" value="BankTransfer" checked data-testid="checkout-payment-bank" />
+                Bankovní převod
+            </label>
             @if ((bool)ViewBag.AllowTestPayment)
             {
                 <label>
-                    <input asp-for="PaymentMethod" type="radio" value="Test" /> Testovací platba</label>
+                    <input asp-for="PaymentMethod" type="radio" value="Test" data-testid="checkout-payment-test" />
+                    Testovací platba
+                </label>
             }
         </fieldset>
 
-        <button class="button checkout-submit" type="submit">Objednat</button>
+        <button class="button checkout-submit" type="submit" data-testid="checkout-submit">Objednat</button>
+        <a class="checkout-back-link" asp-controller="Cart" asp-action="Index" asp-route-culture="@culture">← Zpět do košíku</a>
     </aside>
 </form>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.querySelector('[data-checkout-form]');
+            if (!form) return;
+
+            const cartTotal = Number.parseFloat(form.dataset.cartTotal || '0');
+            const standardShipping = Number.parseFloat(form.dataset.standardShipping || '250');
+            const pickupShipping = Number.parseFloat(form.dataset.pickupShipping || '0');
+            const shippingTotal = form.querySelector('[data-shipping-total]');
+            const grandTotal = form.querySelector('[data-grand-total]');
+            const formatter = new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 });
+
+            const formatPrice = value => `${formatter.format(value)} Kč`;
+            const updateTotals = () => {
+                const selected = form.querySelector('[data-shipping-option]:checked');
+                const shipping = selected?.value === 'pickup' ? pickupShipping : standardShipping;
+                if (shippingTotal) shippingTotal.textContent = shipping === 0 ? 'zdarma' : formatPrice(shipping);
+                if (grandTotal) grandTotal.textContent = formatPrice(cartTotal + shipping);
+            };
+
+            form.querySelectorAll('[data-shipping-option]').forEach(input => input.addEventListener('change', updateTotals));
+            updateTotals();
+        })();
+    </script>
+}

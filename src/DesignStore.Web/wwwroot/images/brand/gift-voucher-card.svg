@@ -1,0 +1,38 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Dárkový poukaz Wild Spirit</title>
+  <desc id="desc">Sepiově laděná karta dárkového poukazu s ornamentem stromu.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f3eadc"/>
+      <stop offset=".55" stop-color="#d8c4a7"/>
+      <stop offset="1" stop-color="#8f5638"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="25%" cy="18%" r="70%">
+      <stop offset="0" stop-color="#fff1d2" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#fff1d2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 .12"/>
+      </feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="900" fill="#1f1d1a"/>
+  <rect x="95" y="105" width="1010" height="690" rx="18" fill="url(#paper)"/>
+  <rect x="95" y="105" width="1010" height="690" rx="18" fill="url(#glow)"/>
+  <rect x="135" y="145" width="930" height="610" rx="10" fill="none" stroke="#2b2721" stroke-opacity=".42" stroke-width="4"/>
+  <g fill="none" stroke="#2b2721" stroke-linecap="round" stroke-linejoin="round" opacity=".82">
+    <path d="M600 305c-60 68-86 126-78 174 8 51 41 83 78 118 37-35 70-67 78-118 8-48-18-106-78-174Z" stroke-width="7"/>
+    <path d="M600 596V405" stroke-width="7"/>
+    <path d="M600 458c-62-54-123-63-186-29 45 22 79 57 102 105" stroke-width="6"/>
+    <path d="M600 458c62-54 123-63 186-29-45 22-79 57-102 105" stroke-width="6"/>
+    <path d="M476 585h248" stroke-width="7"/>
+  </g>
+  <text x="600" y="235" text-anchor="middle" fill="#2b2721" font-family="Georgia, 'Times New Roman', serif" font-size="78" letter-spacing="-2">Wild Spirit</text>
+  <text x="600" y="690" text-anchor="middle" fill="#2b2721" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="8">DÁRKOVÝ POUKAZ</text>
+  <text x="600" y="735" text-anchor="middle" fill="#5b3928" font-family="Arial, sans-serif" font-size="22" letter-spacing="4">kůže · dřevo · železo · kámen</text>
+  <rect width="1200" height="900" filter="url(#grain)" opacity=".55"/>
+</svg>

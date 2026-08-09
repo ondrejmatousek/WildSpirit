@@ -1,4 +1,5 @@
 using DesignStore.Domain.Catalog;
+using DesignStore.Domain.Commerce;
 using DesignStore.Infrastructure.Identity;
 using DesignStore.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -197,6 +198,36 @@ public sealed class E2ETestFixture : IAsyncLifetime
         await db.ProductSlugHistories.Where(x => productIds.Contains(x.ProductId)).ExecuteDeleteAsync();
         await db.ProductTranslations.Where(x => productIds.Contains(x.ProductId)).ExecuteDeleteAsync();
         await db.Products.Where(x => productIds.Contains(x.Id)).ExecuteDeleteAsync();
+    }
+
+    public async Task CleanupOrdersAsync(string emailPrefix)
+    {
+        await using var db = CreateDb();
+        var orderIds = await db.Orders
+            .Where(x => x.Email.StartsWith(emailPrefix))
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        if (orderIds.Count == 0) return;
+
+        await db.Set<Payment>().Where(x => orderIds.Contains(x.OrderId)).ExecuteDeleteAsync();
+        await db.Set<Shipment>().Where(x => orderIds.Contains(x.OrderId)).ExecuteDeleteAsync();
+        await db.Set<OrderStatusHistory>().Where(x => orderIds.Contains(x.OrderId)).ExecuteDeleteAsync();
+        await db.Set<OrderAddress>().Where(x => orderIds.Contains(x.OrderId)).ExecuteDeleteAsync();
+        await db.InventoryMovements.Where(x => x.OrderId.HasValue && orderIds.Contains(x.OrderId.Value)).ExecuteDeleteAsync();
+        await db.Set<OrderItemConfiguration>().Where(x => db.OrderItems.Where(i => orderIds.Contains(i.OrderId)).Select(i => i.Id).Contains(x.OrderItemId)).ExecuteDeleteAsync();
+        await db.OrderItems.Where(x => orderIds.Contains(x.OrderId)).ExecuteDeleteAsync();
+        await db.Orders.Where(x => orderIds.Contains(x.Id)).ExecuteDeleteAsync();
+    }
+
+    public async Task<IReadOnlyList<Order>> OrdersByEmailPrefixAsync(string emailPrefix)
+    {
+        await using var db = CreateDb();
+        return await db.Orders.AsNoTracking()
+            .Include(x => x.Items)
+            .Where(x => x.Email.StartsWith(emailPrefix))
+            .OrderBy(x => x.CreatedAtUtc)
+            .ToListAsync();
     }
 
     public async Task<Guid> SeedProductAsync(string sku, string slug, string name, AvailabilityStatus availability, int stockQuantity, bool isPublished = true)

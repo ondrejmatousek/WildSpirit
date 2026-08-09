@@ -4,41 +4,41 @@
     <h1>Můj účet</h1>
     <p>Vítejte zpět. Jste přihlášen jako <strong>@User.Identity?.Name</strong>
         .</p>
-</section>
-<section class="account-dashboard">
-    <article>
-        <span>01</span>
-        <h2>Vaše objednávky</h2>
-        <p>Přehled objednávek a jejich aktuální stav připravujeme v dalším rozšíření zákaznického účtu.</p>
-    </article>
-    <article>
-        <span>02</span>
-        <h2>Osobní péče</h2>
-        <p>Máte dotaz k výrobku nebo objednávce? Náš ateliér je vám osobně k dispozici.</p>
-        <a href="mailto:studio@wildspirit.design">Kontaktovat ateliér →</a>
-    </article>
-</section>
-<section class="account-actions" aria-label="Soukromí a osobní údaje">
-    <article>
-        <span>03</span>
-        <h2>Export osobních údajů</h2>
-        <p>Stáhněte si JSON přehled údajů vázaných k vašemu účtu, objednávkám, poptávkám, výrobě, newsletteru a kontaktům.</p>
-        <a class="button" asp-controller="Privacy" asp-action="Export" asp-route-culture="cs-CZ">Stáhnout export</a>
-    </article>
-    <article>
-        <span>04</span>
-        <h2>Žádost o zrušení účtu</h2>
-        <p>Žádost se nejdřív ručně zkontroluje, protože účetní doklady a objednávková historie mohou podléhat zákonné retenci.</p>
-        <form asp-controller="Privacy" asp-action="RequestDeletion" asp-route-culture="cs-CZ" method="post">
-            <button class="button" type="submit">Požádat o zrušení</button>
-        </form>
-    </article>
-    <article>
-        <span>05</span>
-        <h2>Odhlášení</h2>
-        <p>Ukončete aktuální přihlášení a vraťte se na úvodní stránku.</p>
-        <form asp-controller="Account" asp-action="Logout" asp-route-culture="cs-CZ" method="post" asp-antiforgery="true">
-            <button class="button" type="submit">Odhlásit se</button>
-        </form>
-    </article>
-</section>
+    </section>
+    <section class="account-dashboard">
+        <article>
+            <span>01</span>
+            <h2>Vaše objednávky</h2>
+            <p>Přehled objednávek a jejich aktuální stav připravujeme v dalším rozšíření zákaznického účtu.</p>
+        </article>
+        <article>
+            <span>02</span>
+            <h2>Osobní péče</h2>
+            <p>Máte dotaz k výrobku nebo objednávce? Náš ateliér je vám osobně k dispozici.</p>
+            <a href="mailto:studio@wildspirit.design">Kontaktovat ateliér →</a>
+        </article>
+    </section>
+    <section class="account-actions" aria-label="Soukromí a osobní údaje">
+        <article>
+            <span>03</span>
+            <h2>Export osobních údajů</h2>
+            <p>Stáhněte si JSON přehled údajů vázaných k vašemu účtu, objednávkám, poptávkám, výrobě, newsletteru a kontaktům.</p>
+            <a class="button" asp-controller="Privacy" asp-action="Export" asp-route-culture="cs-CZ">Stáhnout export</a>
+        </article>
+        <article>
+            <span>04</span>
+            <h2>Žádost o zrušení účtu</h2>
+            <p>Žádost se nejdřív ručně zkontroluje, protože účetní doklady a objednávková historie mohou podléhat zákonné retenci.</p>
+            <form asp-controller="Privacy" asp-action="RequestDeletion" asp-route-culture="cs-CZ" method="post">
+                <button class="button" type="submit">Požádat o zrušení</button>
+            </form>
+        </article>
+        <article>
+            <span>05</span>
+            <h2>Odhlášení</h2>
+            <p>Ukončete aktuální přihlášení a vraťte se na úvodní stránku.</p>
+            <form asp-controller="Account" asp-action="Logout" asp-route-culture="cs-CZ" method="post" asp-antiforgery="true">
+                <button class="button" type="submit">Odhlásit se</button>
+            </form>
+        </article>
+    </section>

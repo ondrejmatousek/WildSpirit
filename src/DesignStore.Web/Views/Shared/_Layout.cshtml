@@ -1,8 +1,8 @@
-@{
+﻿@{
     var culture = ViewContext.RouteData.Values["culture"]?.ToString() ?? "cs-CZ";
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var isHome = string.Equals(controller, "Home", StringComparison.OrdinalIgnoreCase) &&
-    string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
+        string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
@@ -30,11 +30,17 @@
                 <a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a>
                 <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="craft">Řemeslo</a>
                 <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="story">Příběh</a>
-                <a href="#contact">Kontakt</a>
-                <a asp-controller="Cart" asp-action="Index" asp-route-culture="@culture">Košík</a>
             </nav>
             <div class="header-tools">
                 @await Html.PartialAsync("_LoginPartial")
+                <a class="cart-icon-link" asp-controller="Cart" asp-action="Index" asp-route-culture="@culture" aria-label="Košík">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M6.2 6.5h14.1l-1.7 7.2a2.1 2.1 0 0 1-2.1 1.6H9.1a2.1 2.1 0 0 1-2.1-1.7L5.4 4.7H2.8" />
+                        <circle cx="9.4" cy="19.1" r="1.25" />
+                        <circle cx="16.9" cy="19.1" r="1.25" />
+                    </svg>
+                    <span class="sr-only">Košík</span>
+                </a>
                 <nav class="language-nav" aria-label="Jazyk">
                     <a href="/cs-CZ">CZ</a>
                     <a href="/en">EN</a>
@@ -44,29 +50,69 @@
         </header>
         <main id="main">@RenderBody()</main>
         <footer id="contact" class="site-footer">
-            <div class="footer-brand">
-                <p class="eyebrow">Moravský ateliér</p>
-                <img class="footer-logo" src="~/images/brand/wild-spirit-logo.svg" alt="Wild Spirit" />
-                <p>Autorský design, poctivé materiály a předměty, které získávají krásu časem.</p>
-            </div>
-            <div>
-                <p class="eyebrow">Navštivte nás</p>
-                <p>Morava · Česká republika
-                    <br />
+            <section class="footer-benefits" aria-label="Výhody nákupu">
+                <article class="footer-benefit">
+                    <span class="footer-benefit-icon" aria-hidden="true">✦</span>
+                    <h2>Ruční výroba v ateliéru</h2>
+                    <p>Autorské kusy z kůže, dřeva, železa a kamene.</p>
+                </article>
+                <article class="footer-benefit">
+                    <span class="footer-benefit-icon" aria-hidden="true">◇</span>
+                    <h2>Bezpečné balení</h2>
+                    <p>Každý produkt balíme tak, aby dorazil v pořádku.</p>
+                </article>
+                <article class="footer-benefit">
+                    <span class="footer-benefit-icon" aria-hidden="true">◎</span>
+                    <h2>Osobní domluva</h2>
+                    <p>Zakázkovou výrobu potvrzujeme individuálně.</p>
+                </article>
+                <article class="footer-benefit">
+                    <span class="footer-benefit-icon" aria-hidden="true">⌂</span>
+                    <h2>Doprava i osobní odběr</h2>
+                    <p>V pokladně zvolíte kurýra nebo osobní předání.</p>
+                </article>
+            </section>
+            <div class="footer-grid">
+                <section class="footer-brand-block">
+                    <p class="eyebrow">Wild Spirit</p>
+                    <img class="footer-logo" src="~/images/brand/wild-spirit-logo.svg" alt="Wild Spirit" />
+                    <p>Autorský design, poctivé materiály a předměty, které získávají krásu časem.</p>
+                </section>
+                <nav class="footer-column" aria-label="Nakupování">
+                    <h2>Nakupování</h2>
+                    <a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a>
+                    <a asp-controller="Cart" asp-action="Index" asp-route-culture="@culture">Košík</a>
+                    <a asp-controller="GiftVoucher" asp-action="Index" asp-route-culture="@culture">Dárkový poukaz</a>
+                    <a asp-controller="Checkout" asp-action="Index" asp-route-culture="@culture">Pokladna</a>
+                </nav>
+                <nav class="footer-column" aria-label="Ateliér">
+                    <h2>Ateliér</h2>
+                    <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="craft">Řemeslo</a>
+                    <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="story">Příběh</a>
+                    <a asp-controller="Content" asp-action="Gallery" asp-route-culture="@culture">Galerie</a>
+                    <a asp-controller="Contact" asp-action="Index" asp-route-culture="@culture">Kontakt</a>
+                </nav>
+                <section class="footer-column footer-contact">
+                    <h2>Kontakt</h2>
+                    <p>Morava · Česká republika</p>
                     <a href="mailto:studio@wildspirit.design">studio@wildspirit.design</a>
-                </p>
+                    <div class="footer-socials" aria-label="Sociální sítě">
+                        <a class="social-link" href="https://www.facebook.com/" aria-label="Facebook">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 8.2h2.1V4.8c-.4-.1-1.7-.2-3.1-.2-3 0-5 1.8-5 5.1v2.8H4.7v3.8H8V24h4v-7.7h3.3l.5-3.8H12V10c0-1.1.3-1.8 2-1.8Z" /></svg>
+                        </a>
+                        <a class="social-link" href="https://www.instagram.com/" aria-label="Instagram">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.3 2.8h9.4a4.5 4.5 0 0 1 4.5 4.5v9.4a4.5 4.5 0 0 1-4.5 4.5H7.3a4.5 4.5 0 0 1-4.5-4.5V7.3a4.5 4.5 0 0 1 4.5-4.5Zm4.7 5a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4Zm5.1-.7a1 1 0 1 0 0 2.1 1 1 0 0 0 0-2.1Z" /></svg>
+                        </a>
+                        <a class="social-link" href="https://www.youtube.com/" aria-label="YouTube">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21.5 7.2a3 3 0 0 0-2.1-2.1C17.6 4.6 12 4.6 12 4.6s-5.6 0-7.4.5a3 3 0 0 0-2.1 2.1A31 31 0 0 0 2 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.8.5 7.4.5 7.4.5s5.6 0 7.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 22 12a31 31 0 0 0-.5-4.8ZM10 15.4V8.6l5.8 3.4L10 15.4Z" /></svg>
+                        </a>
+                    </div>
+                </section>
             </div>
-            <div>
-                <p class="eyebrow">Objevujte</p>
-                <a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a>
-                <br />
+            <div class="footer-bottom">
+                <small>© @DateTime.UtcNow.Year Wild Spirit</small>
                 <a asp-controller="Home" asp-action="Privacy" asp-route-culture="@culture">Ochrana soukromí</a>
             </div>
-            <div class="footer-signature">
-                <span>Navrženo pomalu.</span>
-                <span>Vyrobeno poctivě.</span>
-            </div>
-            <small>© @DateTime.UtcNow.Year Wild Spirit</small>
         </footer>
         @if (!Context.Request.Cookies.ContainsKey("wildspirit_cookie_consent"))
         {

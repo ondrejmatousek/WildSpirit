@@ -1,4 +1,4 @@
-using DesignStore.Domain.Catalog;
+﻿using DesignStore.Domain.Catalog;
 using DesignStore.Domain.Commerce;
 using DesignStore.Domain.Marketing;
 using DesignStore.Infrastructure.Identity;
@@ -19,6 +19,7 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         if (!await db.Categories.AnyAsync(ct)) await SeedCatalogAsync(ct);
         if (!await db.Materials.AnyAsync(ct)) await SeedStage2CatalogAsync(ct);
         if (!await db.DiscountCodes.AnyAsync(ct)) { db.DiscountCodes.Add(new DiscountCode { Code = "WELCOME10", Type = DiscountType.Percentage, Value = 10, MinimumOrderValue = 1000, IsActive = true }); await db.SaveChangesAsync(ct); }
+        await SeedGiftVoucherAsync(ct);
         if (!await db.ContentPages.AnyAsync(ct)) await SeedMarketingAsync(ct);
     }
 
@@ -153,6 +154,100 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         await db.SaveChangesAsync(ct);
     }
 
+
+    private async Task SeedGiftVoucherAsync(CancellationToken ct)
+    {
+        const string productSku = "WS-GIFT-VOUCHER";
+        const string categorySlug = "darkove-poukazy";
+
+        var category = await db.Categories
+            .Include(x => x.Translations)
+            .FirstOrDefaultAsync(x => x.Translations.Any(t => t.Culture == "cs-CZ" && t.Slug == categorySlug), ct);
+
+        if (category is null)
+        {
+            category = new Category
+            {
+                DisplayOrder = 950,
+                IsPublished = true,
+                ImageUrl = "/images/brand/gift-voucher-card.svg",
+                BannerUrl = "/images/brand/gift-voucher-card.svg",
+                Translations =
+                [
+                    GiftCategoryTranslation("cs-CZ", "Dárkové poukazy", categorySlug, "Darujte výběr z ateliéru Wild Spirit."),
+                    GiftCategoryTranslation("en", "Gift vouchers", "gift-vouchers", "Give someone the freedom to choose from Wild Spirit."),
+                    GiftCategoryTranslation("de", "Geschenkgutscheine", "geschenkgutscheine", "Verschenken Sie die freie Auswahl aus dem Wild-Spirit-Atelier.")
+                ]
+            };
+            db.Categories.Add(category);
+        }
+        else
+        {
+            category.IsPublished = true;
+            category.ImageUrl = string.IsNullOrWhiteSpace(category.ImageUrl) ? "/images/brand/gift-voucher-card.svg" : category.ImageUrl;
+            category.BannerUrl = string.IsNullOrWhiteSpace(category.BannerUrl) ? "/images/brand/gift-voucher-card.svg" : category.BannerUrl;
+            UpsertCategoryTranslation(category, "cs-CZ", "Dárkové poukazy", categorySlug, "Darujte výběr z ateliéru Wild Spirit.");
+            UpsertCategoryTranslation(category, "en", "Gift vouchers", "gift-vouchers", "Give someone the freedom to choose from Wild Spirit.");
+            UpsertCategoryTranslation(category, "de", "Geschenkgutscheine", "geschenkgutscheine", "Verschenken Sie die freie Auswahl aus dem Wild-Spirit-Atelier.");
+        }
+
+        var product = await db.Products
+            .Include(x => x.Translations)
+            .Include(x => x.Variants)
+            .ThenInclude(x => x.Translations)
+            .FirstOrDefaultAsync(x => x.Sku == productSku, ct);
+
+        if (product is null)
+        {
+            product = new Product { Sku = productSku };
+            db.Products.Add(product);
+        }
+
+        product.Category = category;
+        product.BasePrice = 1000m;
+        product.StartingPrice = 1000m;
+        product.VatRate = 0m;
+        product.AvailabilityStatus = AvailabilityStatus.InStock;
+        product.TrackInventory = false;
+        product.StockQuantity = 0;
+        product.CanBeMadeToOrder = false;
+        product.AutomaticallySwitchToMadeToOrder = false;
+        product.EstimatedProductionDays = null;
+        product.IsPublished = true;
+        product.IsFeatured = false;
+        product.IsNew = false;
+        product.IsLimited = false;
+        product.HasVariants = true;
+        product.DisplayOrder = 960;
+        product.MainImageUrl = "/images/brand/gift-voucher-card.svg";
+
+        UpsertProductTranslation(product, "cs-CZ", "Dárkový poukaz Wild Spirit", "darkovy-poukaz", "Darujte možnost vybrat si ručně vyráběný objekt, doplněk nebo zakázkovou práci z ateliéru Wild Spirit.");
+        UpsertProductTranslation(product, "en", "Wild Spirit gift voucher", "gift-voucher", "Give someone the freedom to choose a handmade object, accessory or bespoke piece from Wild Spirit.");
+        UpsertProductTranslation(product, "de", "Wild Spirit Geschenkgutschein", "geschenkgutschein", "Verschenken Sie die freie Wahl für ein handgefertigtes Objekt, Accessoire oder Einzelstück von Wild Spirit.");
+
+        foreach (var amount in new[] { 1000m, 2500m, 5000m, 10000m })
+        {
+            var sku = $"{productSku}-{amount:0}";
+            var variant = product.Variants.FirstOrDefault(x => x.Sku == sku);
+            if (variant is null)
+            {
+                variant = new ProductVariant { Product = product, Sku = sku };
+                product.Variants.Add(variant);
+            }
+
+            variant.Name = $"Poukaz {amount:N0} Kč";
+            variant.Price = amount;
+            variant.AvailabilityStatus = AvailabilityStatus.InStock;
+            variant.StockQuantity = 100000;
+            variant.CanBeMadeToOrder = false;
+            variant.EstimatedProductionDays = null;
+            UpsertVariantTranslation(variant, "cs-CZ", $"Poukaz {amount:N0} Kč");
+            UpsertVariantTranslation(variant, "en", $"Voucher {amount:N0} CZK");
+            UpsertVariantTranslation(variant, "de", $"Gutschein {amount:N0} CZK");
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
     private async Task SeedMarketingAsync(CancellationToken ct)
     {
         db.ContentPages.AddRange(
@@ -167,6 +262,66 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         await db.SaveChangesAsync(ct);
     }
 
+
+    private static CategoryTranslation GiftCategoryTranslation(string culture, string name, string slug, string shortDescription) => new()
+    {
+        Culture = culture,
+        Name = name,
+        Slug = slug,
+        ShortDescription = shortDescription,
+        LongDescription = shortDescription,
+        SeoTitle = name,
+        SeoDescription = shortDescription
+    };
+
+    private static void UpsertCategoryTranslation(Category category, string culture, string name, string slug, string shortDescription)
+    {
+        var translation = category.Translations.FirstOrDefault(x => x.Culture == culture);
+        if (translation is null)
+        {
+            translation = new CategoryTranslation { Culture = culture };
+            category.Translations.Add(translation);
+        }
+        translation.Name = name;
+        translation.Slug = slug;
+        translation.ShortDescription = shortDescription;
+        translation.LongDescription = shortDescription;
+        translation.SeoTitle = name;
+        translation.SeoDescription = shortDescription;
+    }
+
+    private static void UpsertProductTranslation(Product product, string culture, string name, string slug, string shortDescription)
+    {
+        var translation = product.Translations.FirstOrDefault(x => x.Culture == culture);
+        if (translation is null)
+        {
+            translation = new ProductTranslation { Culture = culture };
+            product.Translations.Add(translation);
+        }
+        translation.Name = name;
+        translation.Slug = slug;
+        translation.ShortDescription = shortDescription;
+        translation.LongDescription = shortDescription + " Poukaz po objednání připravíme a zašleme e-mailem. Hodí se pro produkty skladem i pro individuální domluvu zakázkové výroby.";
+        translation.Story = "Malý rituál darování pro někoho, kdo má rád poctivé materiály, tiché objekty a věci s charakterem.";
+        translation.Materials = "Elektronický poukaz s kódem, připravený k předání nebo přeposlání.";
+        translation.Dimensions = "Hodnotu poukazu vyberete před vložením do košíku.";
+        translation.CareInstructions = "Poukaz uchovejte tak, aby byl jeho kód čitelný. Uplatnění řešíme osobně s ateliérem.";
+        translation.ShippingInformation = "Poukaz zasíláme e-mailem po zpracování objednávky.";
+        translation.SeoTitle = name;
+        translation.SeoDescription = shortDescription;
+    }
+
+    private static void UpsertVariantTranslation(ProductVariant variant, string culture, string name)
+    {
+        var translation = variant.Translations.FirstOrDefault(x => x.Culture == culture);
+        if (translation is null)
+        {
+            translation = new ProductVariantTranslation { Culture = culture };
+            variant.Translations.Add(translation);
+        }
+        translation.Name = name;
+        translation.Description = "Hodnota dárkového poukazu.";
+    }
     private static CategoryTranslation Ct(string culture, string name, string slug) => new()
     { Culture = culture, Name = name, Slug = slug, ShortDescription = "Výběr autorských výrobků pro současný interiér." };
 

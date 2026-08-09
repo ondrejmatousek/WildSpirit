@@ -1,0 +1,48 @@
+@model DesignStore.Web.Controllers.RegisterModel
+@{
+    ViewData["Title"] = "Registrace";
+}
+
+<section class="auth-shell">
+    <div class="auth-visual" role="img" aria-label="Vintage interiér s koženým křeslem">
+        <div class="auth-visual-copy">
+            <p class="eyebrow">Wild Spirit Members</p>
+            <p>
+                Váš výběr.
+                <br />Váš příběh.
+            </p>
+        </div>
+    </div>
+    <div class="auth-panel">
+        <div class="auth-card">
+            <p class="eyebrow">Nový účet</p>
+            <h1>Registrace</h1>
+            <p class="auth-intro">Vytvořte si účet e-mailem a heslem pro objednávky, košík a zákaznickou zónu.</p>
+            <form asp-action="Register" method="post" class="login-form" data-testid="register-form">
+                <input asp-for="ReturnUrl" type="hidden" />
+                <div asp-validation-summary="All" class="validation"></div>
+
+                <label asp-for="Email">E-mailová adresa</label>
+                <input asp-for="Email" autocomplete="username" placeholder="vas@email.cz" data-testid="register-email" />
+
+                <label asp-for="Password">Heslo</label>
+                <input asp-for="Password" autocomplete="new-password" placeholder="Alespoň 12 znaků" data-testid="register-password" />
+                <small class="auth-note">Heslo musí mít alespoň 12 znaků a splnit bezpečnostní pravidla aplikace.</small>
+
+                <label asp-for="ConfirmPassword">Potvrzení hesla</label>
+                <input asp-for="ConfirmPassword" autocomplete="new-password" placeholder="Zopakujte heslo" data-testid="register-confirm-password" />
+
+                <label class="check-row">
+                    <input asp-for="RememberMe" />
+                    <span>Zapamatovat přihlášení</span>
+                </label>
+
+                <button class="button button-wide" type="submit" data-testid="register-submit">Registrovat se</button>
+            </form>
+            <p class="auth-note">
+                Už účet máte?
+                <a asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">Přihlaste se</a>.
+            </p>
+        </div>
+    </div>
+</section>

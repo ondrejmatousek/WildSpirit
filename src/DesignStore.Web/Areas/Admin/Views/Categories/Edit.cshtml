@@ -2,141 +2,140 @@
 @model EditCategoryRequest
 @{
     ViewData["Title"] = Model.Id.HasValue ? "Upravit kategorii" : "Nová kategorie";
-    var categories = (IReadOnlyList
-    <EditCategoryRequest>)ViewBag.Categories;
-        static string CultureLabel(string culture) => culture switch
-        {
-            "cs-CZ" => "Čeština",
-            "en" => "English",
-            "de" => "Deutsch",
-            _ => culture
-        };
-    }
+    var categories = (IReadOnlyList<EditCategoryRequest>)ViewBag.Categories;
+    static string CultureLabel(string culture) => culture switch
+    {
+        "cs-CZ" => "Čeština",
+        "en" => "English",
+        "de" => "Deutsch",
+        _ => culture
+    };
+}
 
-    <div class="admin-heading">
-        <div>
-            <p class="admin-kicker">Katalog</p>
-            <h1>@ViewData["Title"]</h1>
-        </div>
-        <a asp-action="Index">Zpět na seznam</a>
+<div class="admin-heading">
+    <div>
+        <p class="admin-kicker">Katalog</p>
+        <h1>@ViewData["Title"]</h1>
+    </div>
+    <a asp-action="Index">Zpět na seznam</a>
+</div>
+
+<form asp-action="Save" method="post" enctype="multipart/form-data" class="admin-form category-editor">
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="ImageUrl" type="hidden" />
+    <input asp-for="BannerUrl" type="hidden" />
+    <div asp-validation-summary="All" class="validation">
     </div>
 
-    <form asp-action="Save" method="post" enctype="multipart/form-data" class="admin-form category-editor">
-        <input asp-for="Id" type="hidden" />
-        <input asp-for="ImageUrl" type="hidden" />
-        <input asp-for="BannerUrl" type="hidden" />
-        <div asp-validation-summary="All" class="validation">
+    <section class="admin-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Základní údaje</h2>
+                <p>Určují zařazení kategorie, její pořadí a viditelnost ve veřejném katalogu.</p>
+            </div>
+        </div>
+        <div class="form-grid">
+            <label>
+                Nadřazená kategorie
+                <select asp-for="ParentCategoryId">
+                    <option value="">Bez rodiče</option>
+                    @foreach (var category in categories.Where(x => x.Id != Model.Id))
+                    {
+                        <option value="@category.Id">@category.Translations.First().Name</option>
+                    }
+                </select>
+            </label>
+            <label>Pořadí
+                <input asp-for="DisplayOrder" type="number" />
+            </label>
+            <label class="check-label">
+                <input asp-for="IsPublished" /> Publikovat</label>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Obrázky</h2>
+                <p>Vlož ručně obrázek kategorie a volitelný široký banner. Systém je uloží jako WebP.</p>
+            </div>
+        </div>
+        <div class="category-media-grid">
+            <label class="category-upload-card">
+                <span class="dropzone-title">Obrázek kategorie</span>
+                <span class="dropzone-subtitle">Zobrazuje se v kartě kolekce/katalogu.</span>
+                @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl" alt="" />
+                }
+                <input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" />
+            </label>
+            <label class="category-upload-card">
+                <span class="dropzone-title">Banner kategorie</span>
+                <span class="dropzone-subtitle">Volitelný široký obrázek pro budoucí detail kategorie.</span>
+                @if (!string.IsNullOrWhiteSpace(Model.BannerUrl))
+                {
+                    <img src="@Model.BannerUrl" alt="" />
+                }
+                <input name="bannerFile" type="file" accept="image/jpeg,image/png,image/webp" />
+            </label>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Překlady a SEO</h2>
+                <p>Defaultně vyplň češtinu. Angličtina a němčina jsou schované v záložkách, aby formulář nedělal nudle.</p>
+            </div>
+            <button type="button" class="secondary" data-translate-category>Přeložit z češtiny</button>
+        </div>
+        <div class="translation-note" data-translation-note hidden>
         </div>
 
-        <section class="admin-card">
-            <div class="card-title-row">
-                <div>
-                    <h2>Základní údaje</h2>
-                    <p>Určují zařazení kategorie, její pořadí a viditelnost ve veřejném katalogu.</p>
-                </div>
-            </div>
-            <div class="form-grid">
-                <label>
-                    Nadřazená kategorie
-                    <select asp-for="ParentCategoryId">
-                        <option value="">Bez rodiče</option>
-                        @foreach (var category in categories.Where(x => x.Id != Model.Id))
-                        {
-                            <option value="@category.Id">@category.Translations.First().Name</option>
-                        }
-                    </select>
-                </label>
-                <label>Pořadí
-                    <input asp-for="DisplayOrder" type="number" />
-                </label>
-                <label class="check-label">
-                    <input asp-for="IsPublished" /> Publikovat</label>
-            </div>
-        </section>
-
-        <section class="admin-card">
-            <div class="card-title-row">
-                <div>
-                    <h2>Obrázky</h2>
-                    <p>Vlož ručně obrázek kategorie a volitelný široký banner. Systém je uloží jako WebP.</p>
-                </div>
-            </div>
-            <div class="category-media-grid">
-                <label class="category-upload-card">
-                    <span class="dropzone-title">Obrázek kategorie</span>
-                    <span class="dropzone-subtitle">Zobrazuje se v kartě kolekce/katalogu.</span>
-                    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
-                    {
-                        <img src="@Model.ImageUrl" alt="" />
-                    }
-                    <input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" />
-                </label>
-                <label class="category-upload-card">
-                    <span class="dropzone-title">Banner kategorie</span>
-                    <span class="dropzone-subtitle">Volitelný široký obrázek pro budoucí detail kategorie.</span>
-                    @if (!string.IsNullOrWhiteSpace(Model.BannerUrl))
-                    {
-                        <img src="@Model.BannerUrl" alt="" />
-                    }
-                    <input name="bannerFile" type="file" accept="image/jpeg,image/png,image/webp" />
-                </label>
-            </div>
-        </section>
-
-        <section class="admin-card">
-            <div class="card-title-row">
-                <div>
-                    <h2>Překlady a SEO</h2>
-                    <p>Defaultně vyplň češtinu. Angličtina a němčina jsou schované v záložkách, aby formulář nedělal nudle.</p>
-                </div>
-                <button type="button" class="secondary" data-translate-category>Přeložit z češtiny</button>
-            </div>
-            <div class="translation-note" data-translation-note hidden>
-            </div>
-
-            <div class="translation-tabs" role="tablist" aria-label="Jazyk kategorie">
-                @for (var i = 0; i < Model.Translations.Count; i++)
-                {
-                    var culture = Model.Translations[i].Culture;
-                    var isActive = culture == "cs-CZ";
-                    <button id="category-translation-tab-@culture" type="button" class="translation-tab @(isActive ? "is-active" : null)" data-translation-tab="@culture" role="tab" aria-controls="category-translation-panel-@culture" aria-selected="@(isActive ? "true" : "false")">@CultureLabel(culture)</button>
-                }
-            </div>
-
+        <div class="translation-tabs" role="tablist" aria-label="Jazyk kategorie">
             @for (var i = 0; i < Model.Translations.Count; i++)
             {
                 var culture = Model.Translations[i].Culture;
                 var isActive = culture == "cs-CZ";
-                <fieldset id="category-translation-panel-@culture" class="translation-panel @(isActive ? "is-active" : null)" data-translation-culture="@culture" role="tabpanel" aria-labelledby="category-translation-tab-@culture" @(isActive ? null : "hidden")>
-                    <legend>@CultureLabel(culture)</legend>
-                    <input asp-for="Translations[i].Culture" type="hidden" />
-                    <div class="form-grid">
-                        <label>Název
-                            <input asp-for="Translations[i].Name" data-translation-field="Name" />
-                        </label>
-                        <label>
-                            Slug
-                            <input asp-for="Translations[i].Slug" data-translation-field="Slug" />
-                            <small class="field-help">Část URL adresy, například kozene-kabelky.</small>
-                        </label>
-                        <label class="wide">Krátký popis
-                            <textarea asp-for="Translations[i].ShortDescription" data-translation-field="ShortDescription">
-                            </textarea>
-                        </label>
-                        <label class="wide">Dlouhý popis
-                            <textarea asp-for="Translations[i].LongDescription" data-translation-field="LongDescription">
-                            </textarea>
-                        </label>
-                        <label>SEO title
-                            <input asp-for="Translations[i].SeoTitle" data-translation-field="SeoTitle" />
-                        </label>
-                        <label>SEO description
-                            <input asp-for="Translations[i].SeoDescription" data-translation-field="SeoDescription" />
-                        </label>
-                    </div>
-                </fieldset>
+                <button id="category-translation-tab-@culture" type="button" class="translation-tab @(isActive ? "is-active" : null)" data-translation-tab="@culture" role="tab" aria-controls="category-translation-panel-@culture" aria-selected="@(isActive ? "true" : "false")">@CultureLabel(culture)</button>
             }
-        </section>
+        </div>
 
-        <button class="button" type="submit">Uložit kategorii</button>
-    </form>
+        @for (var i = 0; i < Model.Translations.Count; i++)
+        {
+            var culture = Model.Translations[i].Culture;
+            var isActive = culture == "cs-CZ";
+            <fieldset id="category-translation-panel-@culture" class="translation-panel @(isActive ? "is-active" : null)" data-translation-culture="@culture" role="tabpanel" aria-labelledby="category-translation-tab-@culture" @(isActive ? null : "hidden")>
+                <legend>@CultureLabel(culture)</legend>
+                <input asp-for="Translations[i].Culture" type="hidden" />
+                <div class="form-grid">
+                    <label>Název
+                        <input asp-for="Translations[i].Name" data-translation-field="Name" />
+                    </label>
+                    <label>
+                        Slug
+                        <input asp-for="Translations[i].Slug" data-translation-field="Slug" />
+                        <small class="field-help">Část URL adresy, například kozene-kabelky.</small>
+                    </label>
+                    <label class="wide">Krátký popis
+                        <textarea asp-for="Translations[i].ShortDescription" data-translation-field="ShortDescription">
+                        </textarea>
+                    </label>
+                    <label class="wide">Dlouhý popis
+                        <textarea asp-for="Translations[i].LongDescription" data-translation-field="LongDescription">
+                        </textarea>
+                    </label>
+                    <label>SEO title
+                        <input asp-for="Translations[i].SeoTitle" data-translation-field="SeoTitle" />
+                    </label>
+                    <label>SEO description
+                        <input asp-for="Translations[i].SeoDescription" data-translation-field="SeoDescription" />
+                    </label>
+                </div>
+            </fieldset>
+        }
+    </section>
+
+    <button class="button" type="submit">Uložit kategorii</button>
+</form>

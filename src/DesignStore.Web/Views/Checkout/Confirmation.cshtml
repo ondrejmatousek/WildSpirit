@@ -1,5 +1,5 @@
 @using DesignStore.Domain.Commerce
-@model DesignStore.Application.Commerce.CheckoutResult
+@model DesignStore.Application.Commerce.OrderDetail
 @{
     ViewData["Title"] = "Objednávka přijata";
     var paymentStatus = Model.PaymentStatus switch
@@ -14,7 +14,32 @@
 
 <section class="catalog-header order-confirmation-header">
     <p class="eyebrow">Děkujeme</p>
-    <h1>Objednávka @Model.OrderNumber byla přijata</h1>
+    <h1>Objednávka @Model.Number byla přijata</h1>
     <p>Stav platby: @paymentStatus</p>
     <strong>@Model.Total.ToString("N0") @Model.Currency</strong>
 </section>
+
+@if (Model.GiftVoucherCodes.Count > 0)
+{
+    <section class="section gift-voucher-result">
+        <div class="section-heading">
+            <p class="eyebrow">Dárkový poukaz</p>
+            <h2>Váš kód</h2>
+            <p>
+                Kód zadejte při dalším nákupu do pole „Slevový kód nebo dárkový poukaz“.
+            </p>
+        </div>
+        <div class="gift-voucher-code-grid">
+            @foreach (var voucher in Model.GiftVoucherCodes)
+            {
+                <article class="gift-voucher-code-card">
+                    <span>@voucher.Value.ToString("N0") @Model.Currency</span>
+                    <strong>@voucher.Code</strong>
+                    <p>
+                        @(voucher.IsActive ? "Aktivní a připravený k použití." : "Aktivuje se po zaplacení objednávky.")
+                    </p>
+                </article>
+            }
+        </div>
+    </section>
+}

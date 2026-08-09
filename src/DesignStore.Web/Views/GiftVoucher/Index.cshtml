@@ -1,0 +1,48 @@
+﻿@model GiftVoucherPageModel
+@{
+    ViewData["Title"] = "Dárkový poukaz";
+    ViewData["Description"] = Model.Description;
+    var culture = ViewContext.RouteData.Values["culture"];
+}
+
+<section class="gift-voucher-page">
+    <div class="gift-voucher-visual">
+        <img src="@Model.ImageUrl" alt="Dárkový poukaz Wild Spirit" />
+    </div>
+    <div class="gift-voucher-copy">
+        <p class="eyebrow">Dárek s volbou</p>
+        <h1>@Model.Name</h1>
+        <p class="lead">@Model.Description</p>
+        <p>Dárkový poukaz je ideální, když chcete darovat Wild Spirit, ale nechat výběr konkrétního kusu na obdarovaném.</p>
+
+        @if (Model.ProductId == Guid.Empty || Model.Amounts.Count == 0)
+        {
+            <p class="availability">Poukaz teď není dostupný.</p>
+        }
+        else
+        {
+            <form asp-controller="Cart" asp-action="Add" asp-route-culture="@culture" method="post" class="gift-voucher-form">
+                <input type="hidden" name="ProductId" value="@Model.ProductId" />
+                <label for="gift-voucher-amount">Hodnota poukazu</label>
+                <select id="gift-voucher-amount" name="ProductVariantId" required>
+                    @foreach (var amount in Model.Amounts)
+                    {
+                        <option value="@amount.VariantId">@amount.Price.ToString("N0") Kč</option>
+                    }
+                </select>
+                <label for="gift-voucher-quantity">Množství</label>
+                <input id="gift-voucher-quantity" type="number" name="Quantity" value="1" min="1" max="10" />
+                <button class="button" type="submit">Přidat poukaz do košíku</button>
+            </form>
+        }
+
+        <div class="gift-voucher-notes">
+            <h2>Jak to funguje</h2>
+            <ul>
+                <li>Vyberete hodnotu poukazu a vložíte ji do košíku.</li>
+                <li>Po objednání poukaz připravíme a zašleme e-mailem.</li>
+                <li>Obdarovaný si později vybere konkrétní produkt nebo zakázkovou výrobu.</li>
+            </ul>
+        </div>
+    </div>
+</section>

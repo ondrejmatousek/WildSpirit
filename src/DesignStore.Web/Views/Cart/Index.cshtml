@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Košík";
     var culture = ViewContext.RouteData.Values["culture"];
+    var successKind = TempData["SuccessKind"] as string;
+    var highlightedItem = Model.Items.LastOrDefault();
 }
 
 <section class="catalog-header">
@@ -15,13 +17,48 @@
 }
 @if (TempData["Success"] is string ok)
 {
-    <p>@ok</p>
+    if (successKind == "cart-add")
+    {
+        <section class="cart-feedback cart-feedback-success" role="status" aria-live="polite">
+            <div class="cart-feedback-icon" aria-hidden="true">✓</div>
+            <div class="cart-feedback-copy">
+                <p class="eyebrow">Přidáno</p>
+                <h2>Zboží je v košíku</h2>
+                <p>@ok</p>
+            </div>
+            @if (highlightedItem is not null)
+            {
+                <div class="cart-feedback-product">
+                    <img src="@highlightedItem.ImageUrl" alt="" />
+                    <div>
+                        <strong>@highlightedItem.Name</strong>
+                        <span>@highlightedItem.Quantity ks · @highlightedItem.Total.ToString("N0") Kč</span>
+                    </div>
+                </div>
+            }
+            <div class="cart-feedback-actions">
+                <a class="button" asp-controller="Checkout" asp-action="Index" asp-route-culture="@culture">Pokračovat k pokladně</a>
+                <a class="cart-link-button" asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Pokračovat v nákupu</a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="notice notice-success" role="status">
+            @ok
+        </div>
+    }
 }
 
 <section class="cart-page" data-testid="cart-page">
     @if (Model.Items.Count == 0)
     {
-        <p data-testid="cart-empty">Košík je prázdný.</p>
+        <div class="cart-empty-state" data-testid="cart-empty">
+            <p class="eyebrow">Košík je prázdný</p>
+            <h2>Zatím tu čeká místo na váš první kousek.</h2>
+            <p>Vyberte si z kolekce poctivých objektů, které mají materiál, ruce a příběh.</p>
+            <a class="button" asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Prohlédnout kolekci</a>
+        </div>
     }
     else
     {
@@ -37,27 +74,29 @@
                         <small>@c</small>
                     }
                 </div>
-                <form asp-action="Quantity" asp-route-culture="@culture" method="post">
+                <form asp-action="Quantity" asp-route-culture="@culture" method="post" data-testid="cart-quantity-form">
                     <input type="hidden" name="itemId" value="@item.Id" />
-                    <input type="number" name="quantity" min="1" max="99" value="@item.Quantity" />
-                    <button type="submit">Upravit</button>
+                    <input type="number" name="quantity" min="1" max="99" value="@item.Quantity" data-testid="cart-line-quantity" />
+                    <button type="submit" data-testid="cart-line-update">Upravit</button>
                 </form>
-                <strong>@item.Total.ToString("N0") Kč</strong>
-                <form asp-action="Remove" asp-route-culture="@culture" method="post">
+                <strong data-testid="cart-line-total">@item.Total.ToString("N0") Kč</strong>
+                <form asp-action="Remove" asp-route-culture="@culture" method="post" data-testid="cart-remove-form">
                     <input type="hidden" name="itemId" value="@item.Id" />
-                    <button type="submit">Odstranit</button>
+                    <button type="submit" data-testid="cart-line-remove">Odstranit</button>
                 </form>
             </article>
         }
         <form asp-action="Discount" asp-route-culture="@culture" method="post">
-            <label>Slevový kód <input name="code" value="@Model.DiscountCode" />
+            <label>
+                Slevový kód nebo dárkový poukaz
+                <input name="code" value="@Model.DiscountCode" />
             </label>
             <button type="submit">Použít</button>
         </form>
         <div class="cart-total">
-            <p>Mezisoučet @Model.Subtotal.ToString("N0") Kč</p>
-            <p>Sleva −@Model.Discount.ToString("N0") Kč</p>
-            <strong>Celkem @Model.Total.ToString("N0") Kč</strong>
+            <p data-testid="cart-subtotal">Mezisoučet @Model.Subtotal.ToString("N0") Kč</p>
+            <p data-testid="cart-discount">Sleva −@Model.Discount.ToString("N0") Kč</p>
+            <strong data-testid="cart-total">Celkem @Model.Total.ToString("N0") Kč</strong>
             <a class="button" asp-controller="Checkout" asp-action="Index" asp-route-culture="@culture">Pokračovat k pokladně</a>
         </div>
     }

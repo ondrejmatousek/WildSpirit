@@ -1,4 +1,4 @@
-using DesignStore.Domain.Commerce;
+﻿using DesignStore.Domain.Commerce;
 using FluentValidation;
 namespace DesignStore.Application.Commerce;
 
@@ -13,7 +13,8 @@ public sealed record OrderListItem(Guid Id, string Number, string Email, DateTim
 public sealed class OrderContactUpdateRequest { public string Email { get; set; } = ""; public AddressInput BillingAddress { get; set; } = new(); public AddressInput ShippingAddress { get; set; } = new(); }
 public sealed record OrderAddressView(AddressType Type, string FullName, string Company, string Street, string City, string PostalCode, string CountryCode, string Phone);
 public sealed record OrderInventoryMovementView(string Type, string Sku, string ItemName, int QuantityChange, int PreviousQuantity, int NewQuantity, string Reason, DateTime CreatedAtUtc);
-public sealed record OrderDetail(Guid Id, string Number, string Email, DateTime CreatedAtUtc, OrderStatus Status, PaymentStatus PaymentStatus, decimal Subtotal, decimal Discount, decimal Shipping, decimal Tax, decimal Total, string Currency, string ShippingMethod, IReadOnlyList<CartLine> Items, IReadOnlyList<OrderAddressView> Addresses, IReadOnlyList<OrderInventoryMovementView> InventoryMovements, IReadOnlyList<string> History);
+public sealed record GiftVoucherCodeView(string Code, decimal Value, bool IsActive, int UsedCount, int? MaximumUses);
+public sealed record OrderDetail(Guid Id, string Number, string Email, DateTime CreatedAtUtc, OrderStatus Status, PaymentStatus PaymentStatus, decimal Subtotal, decimal Discount, decimal Shipping, decimal Tax, decimal Total, string Currency, string ShippingMethod, IReadOnlyList<CartLine> Items, IReadOnlyList<OrderAddressView> Addresses, IReadOnlyList<OrderInventoryMovementView> InventoryMovements, IReadOnlyList<string> History, IReadOnlyList<GiftVoucherCodeView> GiftVoucherCodes);
 public interface ICommerceService
 {
     Task<CartView> GetCartAsync(string token, Guid? userId, string culture, CancellationToken ct);

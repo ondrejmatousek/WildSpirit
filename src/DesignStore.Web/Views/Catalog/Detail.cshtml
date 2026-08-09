@@ -27,7 +27,7 @@
                 </div>
             }
         }
-        else
+    else
         {
             <figure class="detail-main-media">
                 <img src="@Model.ImageUrl" alt="@Model.Name" />
@@ -75,7 +75,7 @@
                             }
                         </select>
                     }
-                    else
+                else
                     {
                         <input id="option-@option.Id" name="Configuration[@index].CustomText" maxlength="@option.MaximumTextLength" required="@option.IsRequired" />
                     }
@@ -87,7 +87,7 @@
                 <button class="button" type="submit" data-testid="add-to-cart-button">Přidat do košíku</button>
             </form>
         }
-        else
+    else
         {
             @switch (Model.Availability)
             {

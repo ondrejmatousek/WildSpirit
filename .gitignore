@@ -6,3 +6,4 @@ obj/
 *.suo
 appsettings.*.local.json
 src/DesignStore.Web/App_Data/
+artifacts/playwright/

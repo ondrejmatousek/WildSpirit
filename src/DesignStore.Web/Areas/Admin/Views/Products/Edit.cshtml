@@ -1,334 +1,328 @@
 @model EditProductRequest
 @{
     ViewData["Title"] = Model.Id.HasValue ? "Upravit produkt" : "Nový produkt";
-    var categories = (IReadOnlyList
-    <EditCategoryRequest>)ViewBag.Categories;
-        var collections = (IReadOnlyList
-        <AdminLookup>)ViewBag.Collections;
-            var materials = (IReadOnlyList
-            <AdminLookup>)ViewBag.Materials;
-                var isCustomMode = Model.CanBeMadeToOrder || Model.AvailabilityStatus == AvailabilityStatus.MadeToOrder;
-            }
+    var categories = (IReadOnlyList<EditCategoryRequest>)ViewBag.Categories;
+    var collections = (IReadOnlyList<AdminLookup>)ViewBag.Collections;
+    var materials = (IReadOnlyList<AdminLookup>)ViewBag.Materials;
+    var isCustomMode = Model.CanBeMadeToOrder || Model.AvailabilityStatus == AvailabilityStatus.MadeToOrder;
+}
 
-            <div class="admin-heading">
-                <div>
-                    <p class="eyebrow">Katalog</p>
-                    <h1>@ViewData["Title"]</h1>
-                </div>
-                <a asp-action="Index">Zpět na seznam</a>
+<div class="admin-heading">
+    <div>
+        <p class="eyebrow">Katalog</p>
+        <h1>@ViewData["Title"]</h1>
+    </div>
+    <a asp-action="Index">Zpět na seznam</a>
+</div>
+
+<form asp-action="Save" method="post" class="admin-form product-editor @(isCustomMode ? "is-custom-mode" : "is-ready-mode")" data-product-editor>
+    <input asp-for="Id" type="hidden" />
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="validation">
+        </div>
+    }
+
+    <section class="admin-card">
+        <h2>Základní údaje</h2>
+        <div class="product-mode-switch" role="group" aria-label="Typ prodeje produktu">
+            <label>
+                <input type="radio" name="ProductSaleMode" value="ready" data-product-mode="ready" @(!isCustomMode ? "checked" : null) />
+                <span>Hotový kus</span>
+                <small>Vyrobeno, skladem, prodává se za pevnou cenu.</small>
+            </label>
+            <label>
+                <input type="radio" name="ProductSaleMode" value="custom" data-product-mode="custom" @(isCustomMode ? "checked" : null) />
+                <span>Zakázková výroba</span>
+                <small>Cena od, výroba na objednávku, termín výroby.</small>
+            </label>
+        </div>
+        <div class="form-grid">
+            <label>
+                SKU
+                <input asp-for="Sku" data-testid="product-sku" />
+                <small class="field-help">Skladový kód produktu. U nového produktu se předvyplní automaticky a lze ho ručně upravit.</small>
+            </label>
+            <label>
+                Kategorie
+                <select asp-for="CategoryId" data-category-template-select data-testid="product-category">
+                    <option value="">Vyberte</option>
+                    @foreach (var c in categories)
+                    {
+                        var categoryCs = c.Translations.FirstOrDefault(t => t.Culture == "cs-CZ");
+                        <option value="@c.Id" data-category-name="@categoryCs?.Name" data-category-slug="@categoryCs?.Slug">@categoryCs?.Name</option>
+                    }
+                </select>
+            </label>
+            <label>
+                Kolekce
+                <select asp-for="CollectionId" data-testid="product-collection">
+                    <option value="">Bez kolekce</option>
+                    @foreach (var c in collections)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </label>
+            <label data-ready-field>Základní cena
+                <input asp-for="BasePrice" type="number" step="0.01" data-testid="product-base-price" />
+                <small class="field-help">Pevná cena hotového kusu.</small>
+            </label>
+            <label data-custom-field>Cena od
+                <input asp-for="StartingPrice" type="number" step="0.01" data-testid="product-starting-price" />
+                <small class="field-help">Minimální orientační cena zakázkové výroby.</small>
+            </label>
+            <label>DPH %
+                <input asp-for="VatRate" type="number" step="0.01" data-testid="product-vat-rate" />
+            </label>
+            <label>Dostupnost
+                <select asp-for="AvailabilityStatus" asp-items="Html.GetEnumSelectList<AvailabilityStatus>()" data-availability-status data-availability-in-stock="@((int)AvailabilityStatus.InStock)" data-availability-made-to-order="@((int)AvailabilityStatus.MadeToOrder)" data-testid="product-availability">
+                </select>
+            </label>
+            <label data-ready-field>Sklad
+                <input asp-for="StockQuantity" type="number" data-stock-quantity data-testid="product-stock" />
+                <small class="field-help">Počet hotových kusů skladem.</small>
+            </label>
+            <label data-custom-field>Doba výroby ve dnech
+                <input asp-for="EstimatedProductionDays" type="number" data-testid="product-production-days" />
+                <small class="field-help">Orientační termín pro výrobu na objednávku.</small>
+            </label>
+        </div>
+        <div class="checks">
+            <label>
+                <input asp-for="IsPublished" data-testid="product-published" /> Publikovat</label>
+            <label>
+                <input asp-for="IsFeatured" /> Doporučené</label>
+            <label>
+                <input asp-for="IsNew" /> Novinka</label>
+            <label>
+                <input asp-for="IsLimited" /> Limitované</label>
+            <label data-ready-field>
+                <input asp-for="TrackInventory" data-track-inventory /> Sledovat sklad</label>
+            <label>
+                <input asp-for="CanBeMadeToOrder" data-testid="product-can-be-made-to-order" /> Lze znovu vyrobit</label>
+            <label data-ready-field>
+                <input asp-for="AutomaticallySwitchToMadeToOrder" /> Po vyprodání na objednávku</label>
+            <label>
+                <input asp-for="HasVariants" /> Produkt má varianty</label>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Překlady a SEO</h2>
+                <p>Vyplňte nejdřív češtinu a potom použijte návrh překladu pro EN/DE.</p>
             </div>
-
-            <form asp-action="Save" method="post" class="admin-form product-editor @(isCustomMode ? "is-custom-mode" : "is-ready-mode")" data-product-editor>
-                <input asp-for="Id" type="hidden" />
-                @if (!ViewData.ModelState.IsValid)
+            <button type="button" class="secondary" data-translate-product>Přeložit z češtiny</button>
+        </div>
+        <div class="translation-note" data-translation-note hidden>
+        </div>
+        <div class="translation-tabs" role="tablist" aria-label="Jazyk překladu">
+            @for (var i = 0; i < Model.Translations.Count; i++)
+            {
+                var culture = Model.Translations[i].Culture;
+                var isActiveCulture = culture == "cs-CZ";
+                var label = culture switch
                 {
-                    <div asp-validation-summary="All" class="validation">
-                    </div>
-                }
-
-                <section class="admin-card">
-                    <h2>Základní údaje</h2>
-                    <div class="product-mode-switch" role="group" aria-label="Typ prodeje produktu">
-                        <label>
-                            <input type="radio" name="ProductSaleMode" value="ready" data-product-mode="ready" @(!isCustomMode ? "checked" : null) />
-                            <span>Hotový kus</span>
-                            <small>Vyrobeno, skladem, prodává se za pevnou cenu.</small>
-                        </label>
-                        <label>
-                            <input type="radio" name="ProductSaleMode" value="custom" data-product-mode="custom" @(isCustomMode ? "checked" : null) />
-                            <span>Zakázková výroba</span>
-                            <small>Cena od, výroba na objednávku, termín výroby.</small>
-                        </label>
-                    </div>
-                    <div class="form-grid">
-                        <label>
-                            SKU
-                            <input asp-for="Sku" data-testid="product-sku" />
-                            <small class="field-help">Skladový kód produktu. U nového produktu se předvyplní automaticky a lze ho ručně upravit.</small>
-                        </label>
-                        <label>
-                            Kategorie
-                            <select asp-for="CategoryId" data-category-template-select data-testid="product-category">
-                                <option value="">Vyberte</option>
-                                @foreach (var c in categories)
-                                {
-                                    var categoryCs = c.Translations.FirstOrDefault(t => t.Culture == "cs-CZ");
-                                    <option value="@c.Id" data-category-name="@categoryCs?.Name" data-category-slug="@categoryCs?.Slug">@categoryCs?.Name</option>
-                                }
-                            </select>
-                        </label>
-                        <label>
-                            Kolekce
-                            <select asp-for="CollectionId" data-testid="product-collection">
-                                <option value="">Bez kolekce</option>
-                                @foreach (var c in collections)
-                                {
-                                    <option value="@c.Id">@c.Name</option>
-                                }
-                            </select>
-                        </label>
-                        <label data-ready-field>Základní cena
-                            <input asp-for="BasePrice" type="number" step="0.01" data-testid="product-base-price" />
-                            <small class="field-help">Pevná cena hotového kusu.</small>
-                        </label>
-                        <label data-custom-field>Cena od
-                            <input asp-for="StartingPrice" type="number" step="0.01" data-testid="product-starting-price" />
-                            <small class="field-help">Minimální orientační cena zakázkové výroby.</small>
-                        </label>
-                        <label>DPH %
-                            <input asp-for="VatRate" type="number" step="0.01" data-testid="product-vat-rate" />
-                        </label>
-                        <label>Dostupnost
-                            <select asp-for="AvailabilityStatus" asp-items="Html.GetEnumSelectList
-                            <AvailabilityStatus>()" data-availability-status data-availability-in-stock="@((int)AvailabilityStatus.InStock)" data-availability-made-to-order="@((int)AvailabilityStatus.MadeToOrder)" data-testid="product-availability">
-                            </select>
-                        </label>
-                        <label data-ready-field>Sklad
-                            <input asp-for="StockQuantity" type="number" data-stock-quantity data-testid="product-stock" />
-                            <small class="field-help">Počet hotových kusů skladem.</small>
-                        </label>
-                        <label data-custom-field>Doba výroby ve dnech
-                            <input asp-for="EstimatedProductionDays" type="number" data-testid="product-production-days" />
-                            <small class="field-help">Orientační termín pro výrobu na objednávku.</small>
-                        </label>
-                    </div>
-                    <div class="checks">
-                        <label>
-                            <input asp-for="IsPublished" data-testid="product-published" /> Publikovat</label>
-                        <label>
-                            <input asp-for="IsFeatured" /> Doporučené</label>
-                        <label>
-                            <input asp-for="IsNew" /> Novinka</label>
-                        <label>
-                            <input asp-for="IsLimited" /> Limitované</label>
-                        <label data-ready-field>
-                            <input asp-for="TrackInventory" data-track-inventory /> Sledovat sklad</label>
-                        <label>
-                            <input asp-for="CanBeMadeToOrder" data-testid="product-can-be-made-to-order" /> Lze znovu vyrobit</label>
-                        <label data-ready-field>
-                            <input asp-for="AutomaticallySwitchToMadeToOrder" /> Po vyprodání na objednávku</label>
-                        <label>
-                            <input asp-for="HasVariants" /> Produkt má varianty</label>
-                    </div>
-                </section>
-
-                <section class="admin-card">
-                    <div class="card-title-row">
-                        <div>
-                            <h2>Překlady a SEO</h2>
-                            <p>Vyplňte nejdřív češtinu a potom použijte návrh překladu pro EN/DE.</p>
-                        </div>
-                        <button type="button" class="secondary" data-translate-product>Přeložit z češtiny</button>
-                    </div>
-                    <div class="translation-note" data-translation-note hidden>
-                    </div>
-                    <div class="translation-tabs" role="tablist" aria-label="Jazyk překladu">
-                        @for (var i = 0; i < Model.Translations.Count; i++)
-                        {
-                            var culture = Model.Translations[i].Culture;
-                            var isActiveCulture = culture == "cs-CZ";
-                            var label = culture switch
-                            {
-                                "cs-CZ" => "Čeština",
-                                "en" => "Angličtina",
-                                "de" => "Němčina",
-                                _ => culture
-                            };
-                            <button id="translation-tab-@culture" type="button" class="translation-tab @(isActiveCulture ? "is-active" : null)" data-translation-tab="@culture" role="tab" aria-controls="translation-panel-@culture" aria-selected="@(isActiveCulture ? "true" : "false")">@label</button>
-                        }
-                    </div>
-                    @for (var i = 0; i < Model.Translations.Count; i++)
-                    {
-                        var culture = Model.Translations[i].Culture;
-                        var isActiveCulture = culture == "cs-CZ";
-                        <fieldset id="translation-panel-@culture" class="translation-panel @(isActiveCulture ? "is-active" : null)" data-translation-culture="@culture" role="tabpanel" aria-labelledby="translation-tab-@culture" @(isActiveCulture ? null : "hidden")>
-                            <legend>@culture</legend>
-                            <input asp-for="Translations[i].Culture" type="hidden" />
-                            <div class="form-grid">
-                                <label>Název
-                                    <input asp-for="Translations[i].Name" data-translation-field="Name" />
-                                </label>
-                                <label>Slug
-                                    <input asp-for="Translations[i].Slug" data-translation-field="Slug" />
-                                    <small class="field-help">Část URL adresy produktu, například kozena-kabelka-aurora. Při uložení se automaticky převede na bezpečný tvar.</small>
-                                </label>
-                                <label class="wide">Krátký popis
-                                    <textarea asp-for="Translations[i].ShortDescription" data-translation-field="ShortDescription">
-                                    </textarea>
-                                </label>
-                                <label class="wide">Dlouhý popis
-                                    <textarea asp-for="Translations[i].LongDescription" data-translation-field="LongDescription">
-                                    </textarea>
-                                </label>
-                                <label class="wide">Příběh
-                                    <textarea asp-for="Translations[i].Story" data-translation-field="Story">
-                                    </textarea>
-                                </label>
-                                <label class="wide">Materiály
-                                    <textarea asp-for="Translations[i].Materials" data-translation-field="Materials">
-                                    </textarea>
-                                </label>
-                                <label class="wide">Péče
-                                    <textarea asp-for="Translations[i].CareInstructions" data-translation-field="CareInstructions">
-                                    </textarea>
-                                </label>
-                                <label class="wide">Doprava
-                                    <textarea asp-for="Translations[i].ShippingInformation" data-translation-field="ShippingInformation">
-                                    </textarea>
-                                </label>
-                                <label>SEO title
-                                    <input asp-for="Translations[i].SeoTitle" data-translation-field="SeoTitle" />
-                                </label>
-                                <label>SEO description
-                                    <input asp-for="Translations[i].SeoDescription" data-translation-field="SeoDescription" />
-                                </label>
-                            </div>
-                        </fieldset>
-                    }
-                </section>
-
-                <section class="admin-card">
-                    <h2>Materiály</h2>
-                    <div class="checks">
-                        @foreach (var m in materials)
-                        {
-                            <label>
-                                <input type="checkbox" name="MaterialIds" value="@m.Id" checked="@Model.MaterialIds.Contains(m.Id)" /> @m.Name</label>
-                        }
-                    </div>
-                </section>
-
-                <section class="admin-card">
-                    <h2>Varianty</h2>
-                    <p>Variantový produkt vede sklad pouze zde.</p>
-                    <div id="variants">
-                        @for (var i = 0; i < Model.Variants.Count; i++)
-                        {
-                            <div class="nested-row">
-                                <input asp-for="Variants[i].Id" type="hidden" />
-                                <label>SKU
-                                    <input asp-for="Variants[i].Sku" />
-                                </label>
-                                <label>Název CZ
-                                    <input asp-for="Variants[i].Name" />
-                                </label>
-                                <label>Název EN
-                                    <input asp-for="Variants[i].NameEn" />
-                                </label>
-                                <label>Název DE
-                                    <input asp-for="Variants[i].NameDe" />
-                                </label>
-                                <label>Cena
-                                    <input asp-for="Variants[i].Price" type="number" step="0.01" />
-                                </label>
-                                <label>Sklad
-                                    <input asp-for="Variants[i].StockQuantity" type="number" />
-                                </label>
-                                <label>Dostupnost
-                                    <select asp-for="Variants[i].AvailabilityStatus" asp-items="Html.GetEnumSelectList
-                                    <AvailabilityStatus>()">
-                                    </select>
-                                </label>
-                            </div>
-                        }
-                    </div>
-                    <button type="button" class="secondary" data-add-variant>Přidat variantu</button>
-                </section>
-
-                <section class="admin-card">
-                    <h2>Produktové volby</h2>
-                    <div id="options">
-                        @for (var i = 0; i < Model.Options.Count; i++)
-                        {
-                            <div class="nested-row">
-                                <input asp-for="Options[i].Id" type="hidden" />
-                                <label>Název
-                                    <input asp-for="Options[i].Name" />
-                                </label>
-                                <label>Typ
-                                    <select asp-for="Options[i].Type" asp-items="Html.GetEnumSelectList
-                                    <ProductOptionType>()">
-                                    </select>
-                                </label>
-                                <label>
-                                    <input asp-for="Options[i].IsRequired" /> Povinná</label>
-                                @for (var j = 0; j < Model.Options[i].Values.Count; j++)
-                                {
-                                    <input asp-for="Options[i].Values[j].Id" type="hidden" />
-                                    <label>Hodnota
-                                        <input asp-for="Options[i].Values[j].Name" />
-                                    </label>
-                                    <label>Příplatek
-                                        <input asp-for="Options[i].Values[j].PriceAdjustment" type="number" step="0.01" />
-                                    </label>
-                                }
-                            </div>
-                        }
-                    </div>
-                    <button type="button" class="secondary" data-add-option>Přidat volbu</button>
-                </section>
-
-                <div class="form-actions">
-                    <button class="button" type="submit" data-testid="product-save">Uložit produkt</button>
+                    "cs-CZ" => "Čeština",
+                    "en" => "Angličtina",
+                    "de" => "Němčina",
+                    _ => culture
+                };
+                <button id="translation-tab-@culture" type="button" class="translation-tab @(isActiveCulture ? "is-active" : null)" data-translation-tab="@culture" role="tab" aria-controls="translation-panel-@culture" aria-selected="@(isActiveCulture ? "true" : "false")">@label</button>
+            }
+        </div>
+        @for (var i = 0; i < Model.Translations.Count; i++)
+        {
+            var culture = Model.Translations[i].Culture;
+            var isActiveCulture = culture == "cs-CZ";
+            <fieldset id="translation-panel-@culture" class="translation-panel @(isActiveCulture ? "is-active" : null)" data-translation-culture="@culture" role="tabpanel" aria-labelledby="translation-tab-@culture" @(isActiveCulture ? null : "hidden")>
+                <legend>@culture</legend>
+                <input asp-for="Translations[i].Culture" type="hidden" />
+                <div class="form-grid">
+                    <label>Název
+                        <input asp-for="Translations[i].Name" data-translation-field="Name" />
+                    </label>
+                    <label>Slug
+                        <input asp-for="Translations[i].Slug" data-translation-field="Slug" />
+                        <small class="field-help">Část URL adresy produktu, například kozena-kabelka-aurora. Při uložení se automaticky převede na bezpečný tvar.</small>
+                    </label>
+                    <label class="wide">Krátký popis
+                        <textarea asp-for="Translations[i].ShortDescription" data-translation-field="ShortDescription">
+                        </textarea>
+                    </label>
+                    <label class="wide">Dlouhý popis
+                        <textarea asp-for="Translations[i].LongDescription" data-translation-field="LongDescription">
+                        </textarea>
+                    </label>
+                    <label class="wide">Příběh
+                        <textarea asp-for="Translations[i].Story" data-translation-field="Story">
+                        </textarea>
+                    </label>
+                    <label class="wide">Materiály
+                        <textarea asp-for="Translations[i].Materials" data-translation-field="Materials">
+                        </textarea>
+                    </label>
+                    <label class="wide">Péče
+                        <textarea asp-for="Translations[i].CareInstructions" data-translation-field="CareInstructions">
+                        </textarea>
+                    </label>
+                    <label class="wide">Doprava
+                        <textarea asp-for="Translations[i].ShippingInformation" data-translation-field="ShippingInformation">
+                        </textarea>
+                    </label>
+                    <label>SEO title
+                        <input asp-for="Translations[i].SeoTitle" data-translation-field="SeoTitle" />
+                    </label>
+                    <label>SEO description
+                        <input asp-for="Translations[i].SeoDescription" data-translation-field="SeoDescription" />
+                    </label>
                 </div>
-            </form>
+            </fieldset>
+        }
+    </section>
 
-            @if (Model.Id.HasValue)
+    <section class="admin-card">
+        <h2>Materiály</h2>
+        <div class="checks">
+            @foreach (var m in materials)
             {
-                <section class="admin-card product-media-card">
-                    <div class="card-title-row">
-                        <div>
-                            <h2>Produktové fotografie</h2>
-                            <p>Najednou lze nahrát až 5 obrázků. Podporované formáty: JPG, PNG a WebP.</p>
-                        </div>
-                    </div>
-                    @if (Model.Images.Count > 0)
+                <label>
+                    <input type="checkbox" name="MaterialIds" value="@m.Id" checked="@Model.MaterialIds.Contains(m.Id)" /> @m.Name</label>
+            }
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <h2>Varianty</h2>
+        <p>Variantový produkt vede sklad pouze zde.</p>
+        <div id="variants">
+            @for (var i = 0; i < Model.Variants.Count; i++)
+            {
+                <div class="nested-row">
+                    <input asp-for="Variants[i].Id" type="hidden" />
+                    <label>SKU
+                        <input asp-for="Variants[i].Sku" />
+                    </label>
+                    <label>Název CZ
+                        <input asp-for="Variants[i].Name" />
+                    </label>
+                    <label>Název EN
+                        <input asp-for="Variants[i].NameEn" />
+                    </label>
+                    <label>Název DE
+                        <input asp-for="Variants[i].NameDe" />
+                    </label>
+                    <label>Cena
+                        <input asp-for="Variants[i].Price" type="number" step="0.01" />
+                    </label>
+                    <label>Sklad
+                        <input asp-for="Variants[i].StockQuantity" type="number" />
+                    </label>
+                    <label>Dostupnost
+                        <select asp-for="Variants[i].AvailabilityStatus" asp-items="Html.GetEnumSelectList<AvailabilityStatus>()">
+                        </select>
+                    </label>
+                </div>
+            }
+        </div>
+        <button type="button" class="secondary" data-add-variant>Přidat variantu</button>
+    </section>
+
+    <section class="admin-card">
+        <h2>Produktové volby</h2>
+        <div id="options">
+            @for (var i = 0; i < Model.Options.Count; i++)
+            {
+                <div class="nested-row">
+                    <input asp-for="Options[i].Id" type="hidden" />
+                    <label>Název
+                        <input asp-for="Options[i].Name" />
+                    </label>
+                    <label>Typ
+                        <select asp-for="Options[i].Type" asp-items="Html.GetEnumSelectList<ProductOptionType>()">
+                        </select>
+                    </label>
+                    <label>
+                        <input asp-for="Options[i].IsRequired" /> Povinná</label>
+                    @for (var j = 0; j < Model.Options[i].Values.Count; j++)
                     {
-                        <div class="product-image-gallery" aria-label="Aktuálně přiřazené fotografie produktu">
-                            @foreach (var image in Model.Images)
+                        <input asp-for="Options[i].Values[j].Id" type="hidden" />
+                        <label>Hodnota
+                            <input asp-for="Options[i].Values[j].Name" />
+                        </label>
+                        <label>Příplatek
+                            <input asp-for="Options[i].Values[j].PriceAdjustment" type="number" step="0.01" />
+                        </label>
+                    }
+                </div>
+            }
+        </div>
+        <button type="button" class="secondary" data-add-option>Přidat volbu</button>
+    </section>
+
+    <div class="form-actions">
+        <button class="button" type="submit" data-testid="product-save">Uložit produkt</button>
+    </div>
+</form>
+
+@if (Model.Id.HasValue)
+{
+    <section class="admin-card product-media-card">
+        <div class="card-title-row">
+            <div>
+                <h2>Produktové fotografie</h2>
+                <p>Najednou lze nahrát až 5 obrázků. Podporované formáty: JPG, PNG a WebP.</p>
+            </div>
+        </div>
+        @if (Model.Images.Count > 0)
+        {
+            <div class="product-image-gallery" aria-label="Aktuálně přiřazené fotografie produktu">
+                @foreach (var image in Model.Images)
+                {
+                    <article class="product-image-card @(image.IsPrimary ? "is-primary" : null)">
+                        <a href="@image.Url" target="_blank" rel="noopener">
+                            <img src="@image.ThumbnailUrl" alt="@(string.IsNullOrWhiteSpace(image.AltText) ? "Produktová fotografie" : image.AltText)" loading="lazy" />
+                        </a>
+                        <div class="product-image-card-body">
+                            <span class="product-image-badge">@(image.IsPrimary ? "Hlavní fotografie" : $"Pořadí {image.DisplayOrder + 1}")</span>
+                            @if (!string.IsNullOrWhiteSpace(image.AltText))
                             {
-                                <article class="product-image-card @(image.IsPrimary ? "is-primary" : null)">
-                                    <a href="@image.Url" target="_blank" rel="noopener">
-                                        <img src="@image.ThumbnailUrl" alt="@(string.IsNullOrWhiteSpace(image.AltText) ? "Produktová fotografie" : image.AltText)" loading="lazy" />
-                                    </a>
-                                    <div class="product-image-card-body">
-                                        <span class="product-image-badge">@(image.IsPrimary ? "Hlavní fotografie" : $"Pořadí {image.DisplayOrder + 1}")</span>
-                                        @if (!string.IsNullOrWhiteSpace(image.AltText))
-                                        {
-                                            <span class="product-image-alt">@image.AltText</span>
-                                        }
-                                        <span class="product-image-meta">@image.Width × @image.Height px</span>
-                                    </div>
-                                </article>
+                                <span class="product-image-alt">@image.AltText</span>
                             }
+                            <span class="product-image-meta">@image.Width × @image.Height px</span>
                         </div>
-                    }
-                    else
-                    {
-                        <p class="empty-state">Produkt zatím nemá přiřazené žádné fotografie.</p>
-                    }
-                    <form asp-area="Admin" asp-controller="Media" asp-action="Upload" method="post" enctype="multipart/form-data" class="admin-form product-dropzone-form" data-dropzone-form>
-                        <input type="hidden" name="productId" value="@Model.Id" />
-                        <label class="dropzone" data-dropzone>
-                            <input class="dropzone-input" type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple required data-dropzone-input data-testid="product-image-files" />
-                            <span class="dropzone-title">Přetáhněte sem fotky produktu</span>
-                            <span class="dropzone-subtitle">nebo klikněte a vyberte až 5 obrázků</span>
-                        </label>
-                        <div class="dropzone-list" data-dropzone-list aria-live="polite">
-                        </div>
-                        <label>Alternativní text
-                            <input name="altText" maxlength="300" required placeholder="Např. Kožená kabelka Aurora zepředu" data-testid="product-image-alt" />
-                        </label>
-                        <label>
-                            <input type="checkbox" name="isPrimary" value="true" /> Hlavní fotografie</label>
-                        <button class="button" data-testid="product-image-upload">Nahrát fotografie</button>
-                    </form>
-                </section>
-            }
-            else
-            {
-                <section class="admin-card">
-                    <h2>Produktové fotografie</h2>
-                    <p>Fotografie půjdou nahrát po prvním uložení produktu, aby se měly k čemu bezpečně připojit.</p>
-                </section>
-            }
+                    </article>
+                }
+            </div>
+        }
+    else
+        {
+            <p class="empty-state">Produkt zatím nemá přiřazené žádné fotografie.</p>
+        }
+        <form asp-area="Admin" asp-controller="Media" asp-action="Upload" method="post" enctype="multipart/form-data" class="admin-form product-dropzone-form" data-dropzone-form>
+            <input type="hidden" name="productId" value="@Model.Id" />
+            <label class="dropzone" data-dropzone>
+                <input class="dropzone-input" type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple required data-dropzone-input data-testid="product-image-files" />
+                <span class="dropzone-title">Přetáhněte sem fotky produktu</span>
+                <span class="dropzone-subtitle">nebo klikněte a vyberte až 5 obrázků</span>
+            </label>
+            <div class="dropzone-list" data-dropzone-list aria-live="polite">
+            </div>
+            <label>Alternativní text
+                <input name="altText" maxlength="300" required placeholder="Např. Kožená kabelka Aurora zepředu" data-testid="product-image-alt" />
+            </label>
+            <label>
+                <input type="checkbox" name="isPrimary" value="true" /> Hlavní fotografie</label>
+            <button class="button" data-testid="product-image-upload">Nahrát fotografie</button>
+        </form>
+    </section>
+}
+else
+    {
+        <section class="admin-card">
+            <h2>Produktové fotografie</h2>
+            <p>Fotografie půjdou nahrát po prvním uložení produktu, aby se měly k čemu bezpečně připojit.</p>
+        </section>
+    }
