@@ -80,7 +80,9 @@
                         <input id="option-@option.Id" name="Configuration[@index].CustomText" maxlength="@option.MaximumTextLength" required="@option.IsRequired" />
                     }
                 }
-                <label>Množství<input type="number" name="Quantity" value="1" min="1" max="99" data-testid="cart-quantity" /></label>
+                <label>Množství
+                    <input type="number" name="Quantity" value="1" min="1" max="99" data-testid="cart-quantity" />
+                </label>
                 <p class="availability in-stock">Skladem</p>
                 <button class="button" type="submit" data-testid="add-to-cart-button">Přidat do košíku</button>
             </form>
@@ -90,25 +92,36 @@
             @switch (Model.Availability)
             {
                 case AvailabilityStatus.MadeToOrder:
-                    <p class="availability made">Na objednávku · přibližně @Model.ProductionDays dní</p>
-                    @if (Model.CanRequestProduction)
-                    {
-                        <a class="button" asp-controller="Inquiry" asp-action="Create" asp-route-culture="@culture" asp-route-productId="@Model.Id" data-testid="inquiry-link">Poptat výrobu</a>
-                    }
-                    break;
+                <p class="availability made">Na objednávku · přibližně @Model.ProductionDays dní</p>
+                @if (Model.CanRequestProduction)
+                {
+                    <a class="button" asp-controller="Inquiry" asp-action="Create" asp-route-culture="@culture" asp-route-productId="@Model.Id" data-testid="inquiry-link">Poptat výrobu</a>
+                }
+                break;
                 case AvailabilityStatus.Unavailable:
-                    <p class="availability">Momentálně nedostupné</p>
-                    break;
+                <p class="availability">Momentálně nedostupné</p>
+                break;
                 case AvailabilityStatus.Discontinued:
-                    <p class="availability">Výroba ukončena</p>
-                    break;
+                <p class="availability">Výroba ukončena</p>
+                break;
             }
         }
 
         <div class="detail-facts">
-            <details open><summary>Popis</summary><p>@Model.LongDescription</p></details>
-            <details><summary>Materiály a rozměry</summary><p>@Model.Materials</p><p>@Model.Dimensions</p></details>
-            <details><summary>Péče a doprava</summary><p>@Model.Care</p><p>@Model.Shipping</p></details>
+            <details open>
+                <summary>Popis</summary>
+                <p>@Model.LongDescription</p>
+            </details>
+            <details>
+                <summary>Materiály a rozměry</summary>
+                <p>@Model.Materials</p>
+                <p>@Model.Dimensions</p>
+            </details>
+            <details>
+                <summary>Péče a doprava</summary>
+                <p>@Model.Care</p>
+                <p>@Model.Shipping</p>
+            </details>
         </div>
     </div>
 </section>

@@ -1,2 +1,35 @@
-@model IReadOnlyList<EditCategoryRequest>
-@{ViewData["Title"]="Kategorie";}<div class="admin-heading"><div><p class="eyebrow">Katalog</p><h1>Kategorie</h1></div><a class="button" asp-action="Edit">Nová kategorie</a></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Název</th><th>Slug</th><th>Pořadí</th><th>Stav</th><th></th></tr></thead><tbody>@foreach(var c in Model){var t=c.Translations.FirstOrDefault(x=>x.Culture=="cs-CZ")??c.Translations.First();<tr><td>@t.Name</td><td>@t.Slug</td><td>@c.DisplayOrder</td><td>@(c.IsPublished?"Publikováno":"Skryto")</td><td><a asp-action="Edit" asp-route-id="@c.Id">Upravit</a></td></tr>}</tbody></table></div>
+@model IReadOnlyList
+<EditCategoryRequest>
+    @{ViewData["Title"]="Kategorie";}
+    <div class="admin-heading">
+        <div>
+            <p class="eyebrow">Katalog</p>
+            <h1>Kategorie</h1>
+        </div>
+        <a class="button" asp-action="Edit">Nová kategorie</a>
+    </div>
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Název</th>
+                    <th>Slug</th>
+                    <th>Pořadí</th>
+                    <th>Stav</th>
+                    <th>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>@foreach(var c in Model){var t=c.Translations.FirstOrDefault(x=>x.Culture=="cs-CZ")??c.Translations.First();
+                <tr>
+                    <td>@t.Name</td>
+                    <td>@t.Slug</td>
+                    <td>@c.DisplayOrder</td>
+                    <td>@(c.IsPublished?"Publikováno":"Skryto")</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@c.Id">Upravit</a>
+                    </td>
+                </tr>
+            }</tbody>
+    </table>
+</div>

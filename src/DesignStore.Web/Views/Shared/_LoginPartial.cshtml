@@ -10,7 +10,9 @@
         {
             <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" asp-route-culture="@culture">Administrace</a>
         }
-        <form asp-area="" asp-controller="Account" asp-action="Logout" asp-route-culture="@culture" method="post"><button type="submit">Odhlásit</button></form>
+        <form asp-area="" asp-controller="Account" asp-action="Logout" asp-route-culture="@culture" method="post">
+            <button type="submit">Odhlásit</button>
+        </form>
     }
     else
     {

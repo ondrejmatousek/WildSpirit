@@ -50,7 +50,8 @@
             </article>
         }
         <form asp-action="Discount" asp-route-culture="@culture" method="post">
-            <label>Slevový kód <input name="code" value="@Model.DiscountCode" /></label>
+            <label>Slevový kód <input name="code" value="@Model.DiscountCode" />
+            </label>
             <button type="submit">Použít</button>
         </form>
         <div class="cart-total">

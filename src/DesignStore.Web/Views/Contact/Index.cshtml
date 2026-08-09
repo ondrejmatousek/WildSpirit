@@ -18,7 +18,8 @@
 
     <form class="editorial-form" asp-action="Index" method="post">
         @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <div asp-validation-summary="ModelOnly" class="validation-summary">
+        </div>
 
         <label>
             Jméno
@@ -28,7 +29,8 @@
         <label>
             E-mail
             <input asp-for="Email" type="email" autocomplete="email" required />
-            <span asp-validation-for="Email"></span>
+            <span asp-validation-for="Email">
+            </span>
         </label>
 
         <label>
@@ -38,8 +40,10 @@
 
         <label>
             Zpráva
-            <textarea asp-for="Message" rows="7" required></textarea>
-            <span asp-validation-for="Message"></span>
+            <textarea asp-for="Message" rows="7" required>
+            </textarea>
+            <span asp-validation-for="Message">
+            </span>
         </label>
 
         <button class="btn-primary" type="submit">Odeslat zprávu</button>

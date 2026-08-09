@@ -3,46 +3,49 @@
 }
 <!DOCTYPE html>
 <html lang="cs">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>@ViewData["Title"] · Wild Spirit Admin</title>
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/admin-product-editor.css" asp-append-version="true" />
-</head>
-<body class="admin-body">
-    <aside class="admin-sidebar">
-        <a class="admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" asp-route-culture="cs-CZ" aria-label="Wild Spirit administrace">
-            <img class="admin-brand-symbol" src="~/images/brand/wild-spirit-symbol.svg" alt="" />
-            <img class="admin-brand-wordmark" src="~/images/brand/wild-spirit-wordmark.svg" alt="Wild Spirit" />
-        </a>
-        <nav>
-            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" asp-route-culture="cs-CZ">Přehled</a>
-            <a asp-area="Admin" asp-controller="Products" asp-action="Index" asp-route-culture="cs-CZ">Produkty</a>
-            <a asp-area="Admin" asp-controller="Categories" asp-action="Index" asp-route-culture="cs-CZ">Kategorie</a>
-            <a asp-area="Admin" asp-controller="References" asp-action="Index" asp-route-culture="cs-CZ">Kolekce a materiály</a>
-            <a asp-area="Admin" asp-controller="Orders" asp-action="Index" asp-route-culture="cs-CZ">Objednávky</a>
-            <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-culture="cs-CZ">Zobrazit obchod</a>
-        </nav>
-        <form class="admin-logout-form" method="post" action="@Url.Action("Logout", "Account", new { area = "", culture })">
-            @Html.AntiForgeryToken()
-            <button class="admin-logout-button" type="submit" data-testid="admin-logout-button">Odhlásit</button>
-        </form>
-    </aside>
-    <main class="admin-main">
-        <header class="admin-top"><span>@User.Identity?.Name</span></header>
-        @if (TempData["Success"] is string message)
-        {
-            <div class="admin-alert">@message</div>
-        }
-        @if (TempData["Error"] is string error)
-        {
-            <div class="admin-alert admin-alert-error">@error</div>
-        }
-        @RenderBody()
-    </main>
-    <script src="~/js/admin.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", false)
-</body>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>@ViewData["Title"] · Wild Spirit Admin</title>
+        <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/admin-product-editor.css" asp-append-version="true" />
+    </head>
+    <body class="admin-body">
+        <aside class="admin-sidebar">
+            <a class="admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" asp-route-culture="cs-CZ" aria-label="Wild Spirit administrace">
+                <img class="admin-brand-symbol" src="~/images/brand/wild-spirit-symbol.svg" alt="" />
+                <img class="admin-brand-wordmark" src="~/images/brand/wild-spirit-wordmark.svg" alt="Wild Spirit" />
+            </a>
+            <nav>
+                <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" asp-route-culture="cs-CZ">Přehled</a>
+                <a asp-area="Admin" asp-controller="Products" asp-action="Index" asp-route-culture="cs-CZ">Produkty</a>
+                <a asp-area="Admin" asp-controller="Categories" asp-action="Index" asp-route-culture="cs-CZ">Kategorie</a>
+                <a asp-area="Admin" asp-controller="References" asp-action="Index" asp-route-culture="cs-CZ">Kolekce a materiály</a>
+                <a asp-area="Admin" asp-controller="Orders" asp-action="Index" asp-route-culture="cs-CZ">Objednávky</a>
+                <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-culture="cs-CZ">Zobrazit obchod</a>
+            </nav>
+            <form class="admin-logout-form" method="post" action="@Url.Action("Logout", "Account", new { area = "", culture })">
+                @Html.AntiForgeryToken()
+                <button class="admin-logout-button" type="submit" data-testid="admin-logout-button">Odhlásit</button>
+            </form>
+        </aside>
+        <main class="admin-main">
+            <header class="admin-top">
+                <span>@User.Identity?.Name</span>
+            </header>
+            @if (TempData["Success"] is string message)
+            {
+                <div class="admin-alert">@message</div>
+            }
+            @if (TempData["Error"] is string error)
+            {
+                <div class="admin-alert admin-alert-error">@error</div>
+            }
+            @RenderBody()
+        </main>
+        <script src="~/js/admin.js" asp-append-version="true">
+        </script>
+        @await RenderSectionAsync("Scripts", false)
+    </body>
 </html>

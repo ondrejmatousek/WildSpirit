@@ -77,14 +77,29 @@
             }
         </div>
         <dl class="order-totals">
-            <div><dt>Mezisoučet</dt><dd>@Model.Subtotal.ToString("N0") @Model.Currency</dd></div>
+            <div>
+                <dt>Mezisoučet</dt>
+                <dd>@Model.Subtotal.ToString("N0") @Model.Currency</dd>
+            </div>
             @if (Model.Discount > 0)
             {
-                <div><dt>Sleva</dt><dd>-@Model.Discount.ToString("N0") @Model.Currency</dd></div>
+                <div>
+                    <dt>Sleva</dt>
+                    <dd>-@Model.Discount.ToString("N0") @Model.Currency</dd>
+                </div>
             }
-            <div><dt>Doprava</dt><dd>@Model.Shipping.ToString("N0") @Model.Currency</dd></div>
-            <div><dt>DPH</dt><dd>@Model.Tax.ToString("N0") @Model.Currency</dd></div>
-            <div class="grand-total"><dt>Celkem</dt><dd>@Model.Total.ToString("N0") @Model.Currency</dd></div>
+            <div>
+                <dt>Doprava</dt>
+                <dd>@Model.Shipping.ToString("N0") @Model.Currency</dd>
+            </div>
+            <div>
+                <dt>DPH</dt>
+                <dd>@Model.Tax.ToString("N0") @Model.Currency</dd>
+            </div>
+            <div class="grand-total">
+                <dt>Celkem</dt>
+                <dd>@Model.Total.ToString("N0") @Model.Currency</dd>
+            </div>
         </dl>
     </section>
 
@@ -97,15 +112,23 @@
                 </div>
                 <button class="icon-button" type="button" data-order-contact-open aria-label="Upravit kontakt a adresy">✎</button>
             </div>
-            <p class="contact-line"><span>E-mail</span><strong data-contact-email>@Model.Email</strong></p>
+            <p class="contact-line">
+                <span>E-mail</span>
+                <strong data-contact-email>@Model.Email</strong>
+            </p>
             <div class="address-list">
                 <article class="address-card">
                     <h3>Fakturační</h3>
                     <p data-address-summary="billing">
-                        <strong data-field="fullName">@billing.FullName</strong><br />
-                        <span data-field="company">@billing.Company</span><br data-company-break="billing" />
-                        <span data-field="street">@billing.Street</span><br />
-                        <span data-field="postalCode">@billing.PostalCode</span> <span data-field="city">@billing.City</span><br />
+                        <strong data-field="fullName">@billing.FullName</strong>
+                        <br />
+                        <span data-field="company">@billing.Company</span>
+                        <br data-company-break="billing" />
+                        <span data-field="street">@billing.Street</span>
+                        <br />
+                        <span data-field="postalCode">@billing.PostalCode</span>
+                        <span data-field="city">@billing.City</span>
+                        <br />
                         <span data-field="countryCode">@billing.CountryCode</span>
                     </p>
                     <p class="muted-text" data-address-phone="billing">@billing.Phone</p>
@@ -113,10 +136,15 @@
                 <article class="address-card">
                     <h3>Dodací</h3>
                     <p data-address-summary="shipping">
-                        <strong data-field="fullName">@shipping.FullName</strong><br />
-                        <span data-field="company">@shipping.Company</span><br data-company-break="shipping" />
-                        <span data-field="street">@shipping.Street</span><br />
-                        <span data-field="postalCode">@shipping.PostalCode</span> <span data-field="city">@shipping.City</span><br />
+                        <strong data-field="fullName">@shipping.FullName</strong>
+                        <br />
+                        <span data-field="company">@shipping.Company</span>
+                        <br data-company-break="shipping" />
+                        <span data-field="street">@shipping.Street</span>
+                        <br />
+                        <span data-field="postalCode">@shipping.PostalCode</span>
+                        <span data-field="city">@shipping.City</span>
+                        <br />
                         <span data-field="countryCode">@shipping.CountryCode</span>
                     </p>
                     <p class="muted-text" data-address-phone="shipping">@shipping.Phone</p>
@@ -133,33 +161,64 @@
                         </div>
                         <button class="icon-button" type="button" data-order-contact-close aria-label="Zavřít">×</button>
                     </div>
-                    <div class="admin-alert admin-alert-error" data-order-contact-error hidden></div>
+                    <div class="admin-alert admin-alert-error" data-order-contact-error hidden>
+                    </div>
                     <input type="hidden" name="id" value="@Model.Id" />
-                    <label class="wide">E-mail<input name="Email" type="email" value="@Model.Email" autocomplete="email" required /></label>
+                    <label class="wide">E-mail
+                        <input name="Email" type="email" value="@Model.Email" autocomplete="email" required />
+                    </label>
 
                     <fieldset>
                         <legend>Fakturační adresa</legend>
                         <div class="form-grid compact">
-                            <label>Jméno<input name="BillingAddress.FullName" value="@billing.FullName" required /></label>
-                            <label>Firma<input name="BillingAddress.Company" value="@billing.Company" /></label>
-                            <label class="wide">Ulice<input name="BillingAddress.Street" value="@billing.Street" required /></label>
-                            <label>Město<input name="BillingAddress.City" value="@billing.City" required /></label>
-                            <label>PSČ<input name="BillingAddress.PostalCode" value="@billing.PostalCode" required /></label>
-                            <label>Země<input name="BillingAddress.CountryCode" value="@billing.CountryCode" maxlength="2" required /></label>
-                            <label class="wide">Telefon<input name="BillingAddress.Phone" value="@billing.Phone" /></label>
+                            <label>Jméno
+                                <input name="BillingAddress.FullName" value="@billing.FullName" required />
+                            </label>
+                            <label>Firma
+                                <input name="BillingAddress.Company" value="@billing.Company" />
+                            </label>
+                            <label class="wide">Ulice
+                                <input name="BillingAddress.Street" value="@billing.Street" required />
+                            </label>
+                            <label>Město
+                                <input name="BillingAddress.City" value="@billing.City" required />
+                            </label>
+                            <label>PSČ
+                                <input name="BillingAddress.PostalCode" value="@billing.PostalCode" required />
+                            </label>
+                            <label>Země
+                                <input name="BillingAddress.CountryCode" value="@billing.CountryCode" maxlength="2" required />
+                            </label>
+                            <label class="wide">Telefon
+                                <input name="BillingAddress.Phone" value="@billing.Phone" />
+                            </label>
                         </div>
                     </fieldset>
 
                     <fieldset>
                         <legend>Dodací adresa</legend>
                         <div class="form-grid compact">
-                            <label>Jméno<input name="ShippingAddress.FullName" value="@shipping.FullName" required /></label>
-                            <label>Firma<input name="ShippingAddress.Company" value="@shipping.Company" /></label>
-                            <label class="wide">Ulice<input name="ShippingAddress.Street" value="@shipping.Street" required /></label>
-                            <label>Město<input name="ShippingAddress.City" value="@shipping.City" required /></label>
-                            <label>PSČ<input name="ShippingAddress.PostalCode" value="@shipping.PostalCode" required /></label>
-                            <label>Země<input name="ShippingAddress.CountryCode" value="@shipping.CountryCode" maxlength="2" required /></label>
-                            <label class="wide">Telefon<input name="ShippingAddress.Phone" value="@shipping.Phone" /></label>
+                            <label>Jméno
+                                <input name="ShippingAddress.FullName" value="@shipping.FullName" required />
+                            </label>
+                            <label>Firma
+                                <input name="ShippingAddress.Company" value="@shipping.Company" />
+                            </label>
+                            <label class="wide">Ulice
+                                <input name="ShippingAddress.Street" value="@shipping.Street" required />
+                            </label>
+                            <label>Město
+                                <input name="ShippingAddress.City" value="@shipping.City" required />
+                            </label>
+                            <label>PSČ
+                                <input name="ShippingAddress.PostalCode" value="@shipping.PostalCode" required />
+                            </label>
+                            <label>Země
+                                <input name="ShippingAddress.CountryCode" value="@shipping.CountryCode" maxlength="2" required />
+                            </label>
+                            <label class="wide">Telefon
+                                <input name="ShippingAddress.Phone" value="@shipping.Phone" />
+                            </label>
                         </div>
                     </fieldset>
 
@@ -175,7 +234,9 @@
             <h2>Změna stavu</h2>
             <form class="order-action-form" asp-action="Status" method="post">
                 <input type="hidden" name="id" value="@Model.Id" />
-                <select name="status" asp-items="Html.GetEnumSelectList<OrderStatus>()"></select>
+                <select name="status" asp-items="Html.GetEnumSelectList
+                <OrderStatus>()">
+                </select>
                 <button class="secondary" type="submit">Změnit stav</button>
             </form>
             @if (Model.Status is not OrderStatus.Cancelled and not OrderStatus.Shipped and not OrderStatus.Completed)
@@ -205,29 +266,29 @@
         <div class="admin-table-wrap">
             <table class="admin-table">
                 <thead>
-                <tr>
-                    <th>Čas</th>
-                    <th>Typ</th>
-                    <th>Položka</th>
-                    <th>SKU</th>
-                    <th>Změna</th>
-                    <th>Stav skladu</th>
-                    <th>Důvod</th>
-                </tr>
+                    <tr>
+                        <th>Čas</th>
+                        <th>Typ</th>
+                        <th>Položka</th>
+                        <th>SKU</th>
+                        <th>Změna</th>
+                        <th>Stav skladu</th>
+                        <th>Důvod</th>
+                    </tr>
                 </thead>
                 <tbody>
-                @foreach (var movement in Model.InventoryMovements)
-                {
-                    <tr>
-                        <td>@movement.CreatedAtUtc.ToLocalTime().ToString("d. M. HH:mm")</td>
-                        <td>@movement.Type</td>
-                        <td>@movement.ItemName</td>
-                        <td>@movement.Sku</td>
-                        <td class="@(movement.QuantityChange < 0 ? "stock-negative" : "stock-positive")">@movement.QuantityChange</td>
-                        <td>@movement.PreviousQuantity → @movement.NewQuantity</td>
-                        <td>@movement.Reason</td>
-                    </tr>
-                }
+                    @foreach (var movement in Model.InventoryMovements)
+                    {
+                        <tr>
+                            <td>@movement.CreatedAtUtc.ToLocalTime().ToString("d. M. HH:mm")</td>
+                            <td>@movement.Type</td>
+                            <td>@movement.ItemName</td>
+                            <td>@movement.Sku</td>
+                            <td class="@(movement.QuantityChange < 0 ? "stock-negative" : "stock-positive")">@movement.QuantityChange</td>
+                            <td>@movement.PreviousQuantity → @movement.NewQuantity</td>
+                            <td>@movement.Reason</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>

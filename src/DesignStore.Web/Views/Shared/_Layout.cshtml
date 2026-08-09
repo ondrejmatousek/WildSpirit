@@ -2,61 +2,87 @@
     var culture = ViewContext.RouteData.Values["culture"]?.ToString() ?? "cs-CZ";
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var isHome = string.Equals(controller, "Home", StringComparison.OrdinalIgnoreCase) &&
-                 string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
+    string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="@ViewData["Description"]" />
-    <title>@ViewData["Title"] · Wild Spirit</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/vintage.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/privacy.css" asp-append-version="true" />
-</head>
-<body class="@(isHome ? "home-page" : "inner-page")">
-    <a class="skip-link" href="#main">Přejít na obsah</a>
-    <header class="site-header">
-        <a class="brand" asp-controller="Home" asp-action="Index" asp-route-culture="@culture" aria-label="Wild Spirit – úvod"><img class="brand-symbol" src="~/images/brand/wild-spirit-symbol.svg" alt="" /><img class="brand-wordmark" src="~/images/brand/wild-spirit-wordmark.svg" alt="Wild Spirit" /></a>
-        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
-        <nav id="main-nav" class="main-nav" aria-label="Hlavní navigace">
-            <a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a>
-            <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="craft">Řemeslo</a>
-            <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="story">Příběh</a>
-            <a href="#contact">Kontakt</a>
-            <a asp-controller="Cart" asp-action="Index" asp-route-culture="@culture">Košík</a>
-        </nav>
-        <div class="header-tools">
-            @await Html.PartialAsync("_LoginPartial")
-            <nav class="language-nav" aria-label="Jazyk"><a href="/cs-CZ">CZ</a><a href="/en">EN</a><a href="/de">DE</a></nav>
-        </div>
-    </header>
-    <main id="main">@RenderBody()</main>
-    <footer id="contact" class="site-footer">
-        <div class="footer-brand"><p class="eyebrow">Moravský ateliér</p><img class="footer-logo" src="~/images/brand/wild-spirit-logo.svg" alt="Wild Spirit" /><p>Autorský design, poctivé materiály a předměty, které získávají krásu časem.</p></div>
-        <div><p class="eyebrow">Navštivte nás</p><p>Morava · Česká republika<br /><a href="mailto:studio@wildspirit.design">studio@wildspirit.design</a></p></div>
-        <div><p class="eyebrow">Objevujte</p><a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a><br /><a asp-controller="Home" asp-action="Privacy" asp-route-culture="@culture">Ochrana soukromí</a></div>
-        <div class="footer-signature"><span>Navrženo pomalu.</span><span>Vyrobeno poctivě.</span></div>
-        <small>© @DateTime.UtcNow.Year Wild Spirit</small>
-    </footer>
-    @if (!Context.Request.Cookies.ContainsKey("wildspirit_cookie_consent"))
-    {
-        <aside class="cookie-consent" aria-label="Nastavení soukromí">
-            <div>
-                <p class="eyebrow">Soukromí</p>
-                <p>Používáme nezbytné cookies pro bezpečné přihlášení, košík a fungování webu. Marketingové skripty nespouštíme bez souhlasu.</p>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="@ViewData["Description"]" />
+        <title>@ViewData["Title"] · Wild Spirit</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/vintage.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/privacy.css" asp-append-version="true" />
+    </head>
+    <body class="@(isHome ? "home-page" : "inner-page")">
+        <a class="skip-link" href="#main">Přejít na obsah</a>
+        <header class="site-header">
+            <a class="brand" asp-controller="Home" asp-action="Index" asp-route-culture="@culture" aria-label="Wild Spirit – úvod">
+                <img class="brand-symbol" src="~/images/brand/wild-spirit-symbol.svg" alt="" />
+                <img class="brand-wordmark" src="~/images/brand/wild-spirit-wordmark.svg" alt="Wild Spirit" />
+            </a>
+            <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
+            <nav id="main-nav" class="main-nav" aria-label="Hlavní navigace">
+                <a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a>
+                <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="craft">Řemeslo</a>
+                <a asp-controller="Home" asp-action="Index" asp-route-culture="@culture" asp-fragment="story">Příběh</a>
+                <a href="#contact">Kontakt</a>
+                <a asp-controller="Cart" asp-action="Index" asp-route-culture="@culture">Košík</a>
+            </nav>
+            <div class="header-tools">
+                @await Html.PartialAsync("_LoginPartial")
+                <nav class="language-nav" aria-label="Jazyk">
+                    <a href="/cs-CZ">CZ</a>
+                    <a href="/en">EN</a>
+                    <a href="/de">DE</a>
+                </nav>
             </div>
-            <form asp-controller="Privacy" asp-action="CookieConsent" asp-route-culture="@culture" method="post">
-                <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
-                <button type="submit" class="button light">Rozumím</button>
-            </form>
-        </aside>
-    }
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
+        </header>
+        <main id="main">@RenderBody()</main>
+        <footer id="contact" class="site-footer">
+            <div class="footer-brand">
+                <p class="eyebrow">Moravský ateliér</p>
+                <img class="footer-logo" src="~/images/brand/wild-spirit-logo.svg" alt="Wild Spirit" />
+                <p>Autorský design, poctivé materiály a předměty, které získávají krásu časem.</p>
+            </div>
+            <div>
+                <p class="eyebrow">Navštivte nás</p>
+                <p>Morava · Česká republika
+                    <br />
+                    <a href="mailto:studio@wildspirit.design">studio@wildspirit.design</a>
+                </p>
+            </div>
+            <div>
+                <p class="eyebrow">Objevujte</p>
+                <a asp-controller="Catalog" asp-action="Index" asp-route-culture="@culture">Kolekce</a>
+                <br />
+                <a asp-controller="Home" asp-action="Privacy" asp-route-culture="@culture">Ochrana soukromí</a>
+            </div>
+            <div class="footer-signature">
+                <span>Navrženo pomalu.</span>
+                <span>Vyrobeno poctivě.</span>
+            </div>
+            <small>© @DateTime.UtcNow.Year Wild Spirit</small>
+        </footer>
+        @if (!Context.Request.Cookies.ContainsKey("wildspirit_cookie_consent"))
+        {
+            <aside class="cookie-consent" aria-label="Nastavení soukromí">
+                <div>
+                    <p class="eyebrow">Soukromí</p>
+                    <p>Používáme nezbytné cookies pro bezpečné přihlášení, košík a fungování webu. Marketingové skripty nespouštíme bez souhlasu.</p>
+                </div>
+                <form asp-controller="Privacy" asp-action="CookieConsent" asp-route-culture="@culture" method="post">
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                    <button type="submit" class="button light">Rozumím</button>
+                </form>
+            </aside>
+        }
+        <script src="~/js/site.js" asp-append-version="true">
+        </script>
+        @await RenderSectionAsync("Scripts", required: false)
+    </body>
 </html>

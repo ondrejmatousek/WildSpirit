@@ -1,3 +1,26 @@
-@model (string Heading, string Eyebrow, IReadOnlyList<ProductCard> Products)
-@{ var culture = ViewContext.RouteData.Values["culture"]; }
-@if(Model.Products.Count > 0){<section class="section"><header class="section-head"><div><p class="eyebrow">@Model.Eyebrow</p><h2>@Model.Heading</h2></div></header><div class="product-grid">@foreach(var item in Model.Products){<article class="product-card"><a asp-controller="Catalog" asp-action="Detail" asp-route-culture="@culture" asp-route-slug="@item.Slug"><div class="product-image"><img src="@item.ImageUrl" alt="@item.Name" loading="lazy" />@if(item.IsLimited){<span class="badge">Limitovaná série</span>}</div><p class="eyebrow">@item.CategoryName</p><h3>@item.Name</h3><p class="price">@(item.StartingPrice.HasValue ? $"od {item.StartingPrice:N0} Kč" : $"{item.Price:N0} Kč")</p></a></article>}</div></section>}
+@model (string Heading, string Eyebrow, IReadOnlyList
+<ProductCard> Products)
+    @{ var culture = ViewContext.RouteData.Values["culture"]; }
+    @if(Model.Products.Count > 0){
+        <section class="section">
+            <header class="section-head">
+                <div>
+                    <p class="eyebrow">@Model.Eyebrow</p>
+                    <h2>@Model.Heading</h2>
+                </div>
+            </header>
+            <div class="product-grid">@foreach(var item in Model.Products){
+                    <article class="product-card">
+                        <a asp-controller="Catalog" asp-action="Detail" asp-route-culture="@culture" asp-route-slug="@item.Slug">
+                            <div class="product-image">
+                                <img src="@item.ImageUrl" alt="@item.Name" loading="lazy" />@if(item.IsLimited){
+                                    <span class="badge">Limitovaná série</span>
+                                }</div>
+                            <p class="eyebrow">@item.CategoryName</p>
+                            <h3>@item.Name</h3>
+                            <p class="price">@(item.StartingPrice.HasValue ? $"od {item.StartingPrice:N0} Kč" : $"{item.Price:N0} Kč")</p>
+                        </a>
+                    </article>
+                }</div>
+        </section>
+    }
