@@ -1,4 +1,5 @@
 namespace DesignStore.Application.Abstractions.Files;
+
 public sealed record FileUpload(Stream Content, string FileName, string ContentType, long Length);
 public sealed record StoredImage(string StorageKey, string ThumbnailStorageKey, string ContentType, int Width, int Height);
 public sealed record StoredAttachment(string StorageKey, string OriginalName, string ContentType, long Length, string Sha256);

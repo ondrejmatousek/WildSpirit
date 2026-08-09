@@ -18,7 +18,7 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         await SeedAdminAsync();
         if (!await db.Categories.AnyAsync(ct)) await SeedCatalogAsync(ct);
         if (!await db.Materials.AnyAsync(ct)) await SeedStage2CatalogAsync(ct);
-        if (!await db.DiscountCodes.AnyAsync(ct)) { db.DiscountCodes.Add(new DiscountCode { Code="WELCOME10",Type=DiscountType.Percentage,Value=10,MinimumOrderValue=1000,IsActive=true }); await db.SaveChangesAsync(ct); }
+        if (!await db.DiscountCodes.AnyAsync(ct)) { db.DiscountCodes.Add(new DiscountCode { Code = "WELCOME10", Type = DiscountType.Percentage, Value = 10, MinimumOrderValue = 1000, IsActive = true }); await db.SaveChangesAsync(ct); }
         if (!await db.ContentPages.AnyAsync(ct)) await SeedMarketingAsync(ct);
     }
 
@@ -79,7 +79,8 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
         };
         var categories = categoryData.Select((c, i) => new Category
         {
-            DisplayOrder = i, ImageUrl = c.Item7,
+            DisplayOrder = i,
+            ImageUrl = c.Item7,
             Translations =
             [
                 Ct("cs-CZ", c.Item1, c.Item4), Ct("en", c.Item2, c.Item5), Ct("de", c.Item3, c.Item6)
@@ -103,13 +104,20 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
             var status = (i % 7) switch { 4 => AvailabilityStatus.MadeToOrder, 5 => AvailabilityStatus.Unavailable, 6 => AvailabilityStatus.Discontinued, _ => AvailabilityStatus.InStock };
             var product = new Product
             {
-                Category = categories[ci], Sku = $"WS-{i + 1:000}", BasePrice = 1890m + i * 1370m,
+                Category = categories[ci],
+                Sku = $"WS-{i + 1:000}",
+                BasePrice = 1890m + i * 1370m,
                 StartingPrice = status == AvailabilityStatus.MadeToOrder ? 1890m + i * 1370m : null,
-                AvailabilityStatus = status, StockQuantity = status == AvailabilityStatus.InStock ? 2 + i % 4 : 0,
-                CanBeMadeToOrder = status == AvailabilityStatus.MadeToOrder, AutomaticallySwitchToMadeToOrder = i % 3 == 0,
+                AvailabilityStatus = status,
+                StockQuantity = status == AvailabilityStatus.InStock ? 2 + i % 4 : 0,
+                CanBeMadeToOrder = status == AvailabilityStatus.MadeToOrder,
+                AutomaticallySwitchToMadeToOrder = i % 3 == 0,
                 EstimatedProductionDays = status == AvailabilityStatus.MadeToOrder ? 35 : null,
-                IsFeatured = i < 8, IsNew = i is >= 8 and < 14, IsLimited = ci == 6 || i is 18 or 19,
-                DisplayOrder = i, MainImageUrl = categories[ci].ImageUrl,
+                IsFeatured = i < 8,
+                IsNew = i is >= 8 and < 14,
+                IsLimited = ci == 6 || i is 18 or 19,
+                DisplayOrder = i,
+                MainImageUrl = categories[ci].ImageUrl,
                 Translations =
                 [
                     Pt("cs-CZ", name, slug, "Autorský objekt vytvořený v malé sérii s důrazem na materiál a detail."),
@@ -124,21 +132,21 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
 
     private async Task SeedStage2CatalogAsync(CancellationToken ct)
     {
-        var oak=new Material{Code="OAK",Translations=[new MaterialTranslation{Culture="cs-CZ",Name="Dub"},new MaterialTranslation{Culture="en",Name="Oak"},new MaterialTranslation{Culture="de",Name="Eiche"}]};
-        var leather=new Material{Code="LEATHER",Translations=[new MaterialTranslation{Culture="cs-CZ",Name="Třísločiněná kůže"},new MaterialTranslation{Culture="en",Name="Vegetable-tanned leather"},new MaterialTranslation{Culture="de",Name="Pflanzlich gegerbtes Leder"}]};
-        var brass=new Material{Code="BRASS",Translations=[new MaterialTranslation{Culture="cs-CZ",Name="Mosaz"},new MaterialTranslation{Culture="en",Name="Brass"},new MaterialTranslation{Culture="de",Name="Messing"}]};
-        db.Materials.AddRange(oak,leather,brass);
-        db.Colors.AddRange(new Color{Code="NATURAL",Hex="#B58B5A",Translations=[new ColorTranslation{Culture="cs-CZ",Name="Přírodní"}]},new Color{Code="BLACK",Hex="#171717",Translations=[new ColorTranslation{Culture="cs-CZ",Name="Černá"}]});
-        var atelier=new Collection{IsPublished=true,Translations=[new CollectionTranslation{Culture="cs-CZ",Name="Atelier 01",Slug="atelier-01",Description="První autorská kolekce."}]};db.Collections.Add(atelier);
-        var product=await db.Products.Include(x=>x.Translations).Include(x=>x.Variants).Include(x=>x.Options).ThenInclude(x=>x.Translations).Include(x=>x.Options).ThenInclude(x=>x.Values).ThenInclude(x=>x.Translations).OrderBy(x=>x.DisplayOrder).FirstAsync(ct);
-        product.Collection=atelier;product.HasVariants=true;product.StockQuantity=0;
-        var variants=new[]
+        var oak = new Material { Code = "OAK", Translations = [new MaterialTranslation { Culture = "cs-CZ", Name = "Dub" }, new MaterialTranslation { Culture = "en", Name = "Oak" }, new MaterialTranslation { Culture = "de", Name = "Eiche" }] };
+        var leather = new Material { Code = "LEATHER", Translations = [new MaterialTranslation { Culture = "cs-CZ", Name = "Třísločiněná kůže" }, new MaterialTranslation { Culture = "en", Name = "Vegetable-tanned leather" }, new MaterialTranslation { Culture = "de", Name = "Pflanzlich gegerbtes Leder" }] };
+        var brass = new Material { Code = "BRASS", Translations = [new MaterialTranslation { Culture = "cs-CZ", Name = "Mosaz" }, new MaterialTranslation { Culture = "en", Name = "Brass" }, new MaterialTranslation { Culture = "de", Name = "Messing" }] };
+        db.Materials.AddRange(oak, leather, brass);
+        db.Colors.AddRange(new Color { Code = "NATURAL", Hex = "#B58B5A", Translations = [new ColorTranslation { Culture = "cs-CZ", Name = "Přírodní" }] }, new Color { Code = "BLACK", Hex = "#171717", Translations = [new ColorTranslation { Culture = "cs-CZ", Name = "Černá" }] });
+        var atelier = new Collection { IsPublished = true, Translations = [new CollectionTranslation { Culture = "cs-CZ", Name = "Atelier 01", Slug = "atelier-01", Description = "První autorská kolekce." }] }; db.Collections.Add(atelier);
+        var product = await db.Products.Include(x => x.Translations).Include(x => x.Variants).Include(x => x.Options).ThenInclude(x => x.Translations).Include(x => x.Options).ThenInclude(x => x.Values).ThenInclude(x => x.Translations).OrderBy(x => x.DisplayOrder).FirstAsync(ct);
+        product.Collection = atelier; product.HasVariants = true; product.StockQuantity = 0;
+        var variants = new[]
         {
             new ProductVariant{Product=product,Sku=$"{product.Sku}-OAK",Name="Dub přírodní",Price=product.BasePrice,AvailabilityStatus=AvailabilityStatus.InStock,StockQuantity=2},
             new ProductVariant{Product=product,Sku=$"{product.Sku}-DARK",Name="Dub tmavý",Price=product.BasePrice+2500,AvailabilityStatus=AvailabilityStatus.MadeToOrder,CanBeMadeToOrder=true,EstimatedProductionDays=35}
         };
-        var productMaterial=new ProductMaterial{Product=product,Material=oak};
-        var option=new ProductOption{Product=product,Type=ProductOptionType.Select,IsRequired=true,Translations=[new ProductOptionTranslation{Culture="cs-CZ",Name="Povrchová úprava"}],Values=[new ProductOptionValue{PriceAdjustment=0,Translations=[new ProductOptionValueTranslation{Culture="cs-CZ",Name="Přírodní olej"}]},new ProductOptionValue{PriceAdjustment=1800,AdditionalProductionDays=5,Translations=[new ProductOptionValueTranslation{Culture="cs-CZ",Name="Tmavý olej"}]}]};
+        var productMaterial = new ProductMaterial { Product = product, Material = oak };
+        var option = new ProductOption { Product = product, Type = ProductOptionType.Select, IsRequired = true, Translations = [new ProductOptionTranslation { Culture = "cs-CZ", Name = "Povrchová úprava" }], Values = [new ProductOptionValue { PriceAdjustment = 0, Translations = [new ProductOptionValueTranslation { Culture = "cs-CZ", Name = "Přírodní olej" }] }, new ProductOptionValue { PriceAdjustment = 1800, AdditionalProductionDays = 5, Translations = [new ProductOptionValueTranslation { Culture = "cs-CZ", Name = "Tmavý olej" }] }] };
         db.ProductVariants.AddRange(variants);
         db.Add(productMaterial);
         db.ProductOptions.Add(option);
@@ -148,14 +156,14 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
     private async Task SeedMarketingAsync(CancellationToken ct)
     {
         db.ContentPages.AddRange(
-            new ContentPage { Type=ContentPageType.Story, IsPublished=true, DisplayOrder=1, Translations=[new ContentPageTranslation{Culture="cs-CZ",Title="Příběh Wild Spirit",Slug="pribeh",Summary="Ateliér, materiály a objekty s charakterem.",BodyHtml="<p>Wild Spirit vzniká z respektu k dřevu, železu, kameni a poctivé ruční práci.</p>",SeoTitle="Příběh Wild Spirit",SeoDescription="Autorský design, řemeslo a přírodní materiály."}] },
-            new ContentPage { Type=ContentPageType.Craft, IsPublished=true, DisplayOrder=2, Translations=[new ContentPageTranslation{Culture="cs-CZ",Title="Řemeslo",Slug="remeslo",Summary="Proces výroby a péče o detail.",BodyHtml="<p>Každý kus prochází návrhem, výrobou, kontrolou a finální péčí v ateliéru.</p>",SeoTitle="Řemeslo Wild Spirit",SeoDescription="Jak vznikají objekty Wild Spirit."}] });
+            new ContentPage { Type = ContentPageType.Story, IsPublished = true, DisplayOrder = 1, Translations = [new ContentPageTranslation { Culture = "cs-CZ", Title = "Příběh Wild Spirit", Slug = "pribeh", Summary = "Ateliér, materiály a objekty s charakterem.", BodyHtml = "<p>Wild Spirit vzniká z respektu k dřevu, železu, kameni a poctivé ruční práci.</p>", SeoTitle = "Příběh Wild Spirit", SeoDescription = "Autorský design, řemeslo a přírodní materiály." }] },
+            new ContentPage { Type = ContentPageType.Craft, IsPublished = true, DisplayOrder = 2, Translations = [new ContentPageTranslation { Culture = "cs-CZ", Title = "Řemeslo", Slug = "remeslo", Summary = "Proces výroby a péče o detail.", BodyHtml = "<p>Každý kus prochází návrhem, výrobou, kontrolou a finální péčí v ateliéru.</p>", SeoTitle = "Řemeslo Wild Spirit", SeoDescription = "Jak vznikají objekty Wild Spirit." }] });
         db.GalleryItems.AddRange(
-            new GalleryItem{IsPublished=true,DisplayOrder=1,ImageUrl="/images/hero-meadow-sunset.png",Translations=[new GalleryItemTranslation{Culture="cs-CZ",Title="Louka při západu",Description="Sepiová atmosféra ateliéru a přírodních materiálů."}]},
-            new GalleryItem{IsPublished=true,DisplayOrder=2,ImageUrl="/images/hero-meadow-sunset.png",Translations=[new GalleryItemTranslation{Culture="cs-CZ",Title="Dřevo, železo, kámen",Description="Materiály, které přirozeně stárnou a získávají charakter."}]});
+            new GalleryItem { IsPublished = true, DisplayOrder = 1, ImageUrl = "/images/hero-meadow-sunset.png", Translations = [new GalleryItemTranslation { Culture = "cs-CZ", Title = "Louka při západu", Description = "Sepiová atmosféra ateliéru a přírodních materiálů." }] },
+            new GalleryItem { IsPublished = true, DisplayOrder = 2, ImageUrl = "/images/hero-meadow-sunset.png", Translations = [new GalleryItemTranslation { Culture = "cs-CZ", Title = "Dřevo, železo, kámen", Description = "Materiály, které přirozeně stárnou a získávají charakter." }] });
         db.Reviews.AddRange(
-            new Review{IsPublished=true,Culture="cs-CZ",AuthorName="Ateliérový zákazník",Rating=5,Text="Kus, který má vlastní ticho a váhu. Přesně to jsme hledali."},
-            new Review{IsPublished=true,Culture="cs-CZ",AuthorName="Interiérový architekt",Rating=5,Text="Silná materiálová estetika bez prázdného efektu."});
+            new Review { IsPublished = true, Culture = "cs-CZ", AuthorName = "Ateliérový zákazník", Rating = 5, Text = "Kus, který má vlastní ticho a váhu. Přesně to jsme hledali." },
+            new Review { IsPublished = true, Culture = "cs-CZ", AuthorName = "Interiérový architekt", Rating = 5, Text = "Silná materiálová estetika bez prázdného efektu." });
         await db.SaveChangesAsync(ct);
     }
 
@@ -164,11 +172,16 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
 
     private static ProductTranslation Pt(string culture, string name, string slug, string shortDescription) => new()
     {
-        Culture = culture, Name = name, Slug = slug, ShortDescription = shortDescription,
+        Culture = culture,
+        Name = name,
+        Slug = slug,
+        ShortDescription = shortDescription,
         LongDescription = shortDescription + " Každý kus prochází rukama našich řemeslníků a vzniká s respektem k přirozené kresbě materiálu.",
         Story = "Navrženo v našem moravském ateliéru jako tichý, dlouhověký společník každodenního života.",
-        Materials = "Pečlivě vybrané přírodní materiály z odpovědných zdrojů.", Dimensions = "Rozměry a technické podrobnosti sdělíme u konkrétní varianty.",
-        CareInstructions = "Ošetřujte jemně, bez agresivních čisticích prostředků.", ShippingInformation = "Bezpečné doručení po České republice a Evropě."
+        Materials = "Pečlivě vybrané přírodní materiály z odpovědných zdrojů.",
+        Dimensions = "Rozměry a technické podrobnosti sdělíme u konkrétní varianty.",
+        CareInstructions = "Ošetřujte jemně, bez agresivních čisticích prostředků.",
+        ShippingInformation = "Bezpečné doručení po České republice a Evropě."
     };
 
     private static string Slug(string value)

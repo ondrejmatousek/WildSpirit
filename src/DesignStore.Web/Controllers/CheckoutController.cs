@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using DesignStore.Application.Commerce;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DesignStore.Web.Controllers;
 

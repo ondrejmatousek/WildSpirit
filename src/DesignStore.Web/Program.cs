@@ -1,4 +1,3 @@
-using System.Globalization;
 using DesignStore.Application;
 using DesignStore.Application.Marketing;
 using DesignStore.Infrastructure;
@@ -7,6 +6,7 @@ using DesignStore.Web.Middleware;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
 using Serilog;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) => configuration.ReadFrom.Configuration(context.Configuration).WriteTo.Console());

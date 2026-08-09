@@ -1,11 +1,11 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using DesignStore.Application.Marketing;
 using DesignStore.Domain.Commerce;
 using DesignStore.Domain.Marketing;
 using DesignStore.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace DesignStore.Infrastructure.Marketing;
 

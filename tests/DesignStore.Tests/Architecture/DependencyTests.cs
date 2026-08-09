@@ -1,5 +1,5 @@
-using System.Reflection;
 using DesignStore.Domain.Catalog;
+using System.Reflection;
 
 namespace DesignStore.Tests.Architecture;
 

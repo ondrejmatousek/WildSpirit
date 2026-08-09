@@ -1,7 +1,3 @@
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.ExceptionServices;
 using DesignStore.Domain.Catalog;
 using DesignStore.Infrastructure.Identity;
 using DesignStore.Infrastructure.Persistence;
@@ -10,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.ExceptionServices;
 
 namespace DesignStore.E2E.Tests.Infrastructure;
 

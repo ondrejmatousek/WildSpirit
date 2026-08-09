@@ -1,6 +1,6 @@
+using DesignStore.Application.Abstractions.Files;
 using DesignStore.Domain.Catalog;
 using FluentValidation;
-using DesignStore.Application.Abstractions.Files;
 
 namespace DesignStore.Application.Catalog;
 
@@ -159,7 +159,7 @@ public sealed class EditProductRequestValidator : AbstractValidator<EditProductR
         RuleForEach(x => x.Variants).ChildRules(v => { v.RuleFor(x => x.Sku).NotEmpty().MaximumLength(64); v.RuleFor(x => x.StockQuantity).GreaterThanOrEqualTo(0); });
         RuleForEach(x => x.Options).ChildRules(o => { o.RuleFor(x => x.Name).NotEmpty().MaximumLength(160); o.RuleFor(x => x.MaximumTextLength).InclusiveBetween(1, 500).When(x => x.MaximumTextLength.HasValue); });
     }
-    private static bool IsPlainText(string? value)=>string.IsNullOrEmpty(value)||(!value.Contains('<')&&!value.Contains('>'));
+    private static bool IsPlainText(string? value) => string.IsNullOrEmpty(value) || (!value.Contains('<') && !value.Contains('>'));
 }
 
 public sealed class EditCategoryRequestValidator : AbstractValidator<EditCategoryRequest>
@@ -170,6 +170,6 @@ public sealed class EditCategoryRequestValidator : AbstractValidator<EditCategor
         RuleFor(x => x.ImageUrl).MaximumLength(500);
         RuleFor(x => x.BannerUrl).MaximumLength(500);
         RuleFor(x => x.Translations).NotEmpty();
-        RuleForEach(x => x.Translations).ChildRules(t => { t.RuleFor(x => x.Culture).Must(c => c is "cs-CZ" or "en" or "de"); t.RuleFor(x => x.Name).NotEmpty().MaximumLength(160); t.RuleFor(x => x.Slug).NotEmpty().Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$"); t.RuleFor(x=>x.LongDescription).Must(v=>string.IsNullOrEmpty(v)||(!v.Contains('<')&&!v.Contains('>'))).WithMessage("HTML není v popisu povoleno."); });
+        RuleForEach(x => x.Translations).ChildRules(t => { t.RuleFor(x => x.Culture).Must(c => c is "cs-CZ" or "en" or "de"); t.RuleFor(x => x.Name).NotEmpty().MaximumLength(160); t.RuleFor(x => x.Slug).NotEmpty().Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$"); t.RuleFor(x => x.LongDescription).Must(v => string.IsNullOrEmpty(v) || (!v.Contains('<') && !v.Contains('>'))).WithMessage("HTML není v popisu povoleno."); });
     }
 }

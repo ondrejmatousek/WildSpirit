@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
 using DesignStore.Domain.Commerce;
 using DesignStore.Infrastructure.Identity;
 using DesignStore.Infrastructure.Persistence;
@@ -8,6 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace DesignStore.Web.Controllers;
 

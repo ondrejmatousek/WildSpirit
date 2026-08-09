@@ -54,11 +54,11 @@ public sealed class CatalogService(ApplicationDbContext db) : ICatalogService
             product.MainImageUrl, product.CanAddToCart(), product.CanRequestProduction(),
             product.Variants.OrderBy(v => v.Name).Select(v => new ProductVariantItem(v.Id, v.Name,
                 v.Price ?? product.BasePrice, v.AvailabilityStatus, v.StockQuantity)).ToList(),
-            product.Images.OrderBy(x=>x.DisplayOrder).Select(x=>new ProductImageItem(x.Id,x.AltText,x.IsPrimary)).ToList(),
-            product.Options.OrderBy(x=>x.DisplayOrder).Select(x=>new ProductOptionItem(x.Id,(x.Translations.FirstOrDefault(t=>t.Culture==culture)??x.Translations.First()).Name,x.Type,x.IsRequired,x.MaximumTextLength,x.Values.Where(v=>v.IsActive).OrderBy(v=>v.DisplayOrder).Select(v=>new ProductOptionValueItem(v.Id,(v.Translations.FirstOrDefault(t=>t.Culture==culture)??v.Translations.First()).Name,v.PriceAdjustment,v.AdditionalProductionDays)).ToList())).ToList());
+            product.Images.OrderBy(x => x.DisplayOrder).Select(x => new ProductImageItem(x.Id, x.AltText, x.IsPrimary)).ToList(),
+            product.Options.OrderBy(x => x.DisplayOrder).Select(x => new ProductOptionItem(x.Id, (x.Translations.FirstOrDefault(t => t.Culture == culture) ?? x.Translations.First()).Name, x.Type, x.IsRequired, x.MaximumTextLength, x.Values.Where(v => v.IsActive).OrderBy(v => v.DisplayOrder).Select(v => new ProductOptionValueItem(v.Id, (v.Translations.FirstOrDefault(t => t.Culture == culture) ?? v.Translations.First()).Name, v.PriceAdjustment, v.AdditionalProductionDays)).ToList())).ToList());
     }
 
-    public Task<string?> GetCurrentSlugAsync(string culture,string oldSlug,CancellationToken ct)=>db.ProductSlugHistories.AsNoTracking().Where(x=>x.Culture==culture&&x.OldSlug==oldSlug&&x.Product.IsPublished).Select(x=>x.Product.Translations.Where(t=>t.Culture==culture).Select(t=>t.Slug).FirstOrDefault()).FirstOrDefaultAsync(ct);
+    public Task<string?> GetCurrentSlugAsync(string culture, string oldSlug, CancellationToken ct) => db.ProductSlugHistories.AsNoTracking().Where(x => x.Culture == culture && x.OldSlug == oldSlug && x.Product.IsPublished).Select(x => x.Product.Translations.Where(t => t.Culture == culture).Select(t => t.Slug).FirstOrDefault()).FirstOrDefaultAsync(ct);
 
     private IQueryable<Product> BaseProductQuery() => db.Products.AsNoTracking()
         .Where(p => p.IsPublished)
@@ -66,8 +66,8 @@ public sealed class CatalogService(ApplicationDbContext db) : ICatalogService
         .Include(p => p.Category).ThenInclude(c => c.Translations)
         .Include(p => p.Variants)
         .Include(p => p.Images)
-        .Include(p => p.Options).ThenInclude(o=>o.Translations)
-        .Include(p => p.Options).ThenInclude(o=>o.Values).ThenInclude(v=>v.Translations)
+        .Include(p => p.Options).ThenInclude(o => o.Translations)
+        .Include(p => p.Options).ThenInclude(o => o.Values).ThenInclude(v => v.Translations)
         .AsSplitQuery();
 
     private static CatalogRow ToRow(Product product, string culture)

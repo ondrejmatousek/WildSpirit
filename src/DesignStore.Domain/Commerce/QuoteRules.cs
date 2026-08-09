@@ -2,7 +2,7 @@ namespace DesignStore.Domain.Commerce;
 
 public static class QuoteRules
 {
-    public static bool CanTransition(QuoteStatus from, QuoteStatus to) => (from,to) switch
+    public static bool CanTransition(QuoteStatus from, QuoteStatus to) => (from, to) switch
     {
         (QuoteStatus.Draft, QuoteStatus.Sent or QuoteStatus.Cancelled) => true,
         (QuoteStatus.Sent, QuoteStatus.Accepted or QuoteStatus.Rejected or QuoteStatus.ChangeRequested or QuoteStatus.Expired) => true,

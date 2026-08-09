@@ -30,8 +30,12 @@ public sealed class CatalogLocalizationTests(SqlServerDatabaseFixture database)
         };
         category.Products.Add(new Product
         {
-            Sku = "QUERY-TRANSLATION-001", BasePrice = 1000, IsPublished = true, DisplayOrder = 1,
-            AvailabilityStatus = AvailabilityStatus.InStock, StockQuantity = 1,
+            Sku = "QUERY-TRANSLATION-001",
+            BasePrice = 1000,
+            IsPublished = true,
+            DisplayOrder = 1,
+            AvailabilityStatus = AvailabilityStatus.InStock,
+            StockQuantity = 1,
             Translations = [new ProductTranslation { Culture = "cs-CZ", Name = "Testovací světlo", Slug = "testovaci-svetlo", ShortDescription = "Popis" }]
         });
         db.Categories.Add(category);

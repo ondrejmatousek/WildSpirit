@@ -25,7 +25,7 @@ public sealed class RouteAndAuthorizationTests
         Assert.NotNull(typeof(DashboardController).GetCustomAttributes(typeof(AreaAttribute), true).SingleOrDefault());
     }
 
-    [Fact] public void Product_administration_requires_catalog_policy(){var authorize=Assert.Single(typeof(ProductsController).GetCustomAttributes(typeof(AuthorizeAttribute),true).Cast<AuthorizeAttribute>());Assert.Equal("CatalogManage",authorize.Policy);}
+    [Fact] public void Product_administration_requires_catalog_policy() { var authorize = Assert.Single(typeof(ProductsController).GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()); Assert.Equal("CatalogManage", authorize.Policy); }
 
     [Fact]
     public void Media_upload_accepts_multiple_files_and_requires_catalog_policy()

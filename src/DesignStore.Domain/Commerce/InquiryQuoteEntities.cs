@@ -1,4 +1,3 @@
-using DesignStore.Domain.Catalog;
 using DesignStore.Domain.Common;
 
 namespace DesignStore.Domain.Commerce;
@@ -44,10 +43,19 @@ public sealed class ProductInquiryNote : AuditableEntity
 { public Guid ProductInquiryId { get; set; } public ProductInquiry ProductInquiry { get; set; } = null!; public InquiryNoteVisibility Visibility { get; set; } public string Body { get; set; } = ""; public string? Author { get; set; } }
 public sealed class Quote : AuditableEntity
 {
-    public string Number { get; set; } = ""; public Guid ProductInquiryId { get; set; } public ProductInquiry ProductInquiry { get; set; } = null!;
-    public int Version { get; set; } public QuoteStatus Status { get; set; } = QuoteStatus.Draft; public string Currency { get; set; } = "CZK"; public decimal ExchangeRate { get; set; } = 1;
-    public decimal Subtotal { get; set; } public decimal TaxTotal { get; set; } public decimal DiscountTotal { get; set; } public decimal DepositAmount { get; set; } public decimal Total { get; set; }
-    public string? ProductionTime { get; set; } public DateTime? ValidUntilUtc { get; set; } public string Terms { get; set; } = ""; public string? Note { get; set; } public Guid? ConvertedOrderId { get; set; }
+    public string Number { get; set; } = ""; public Guid ProductInquiryId { get; set; }
+    public ProductInquiry ProductInquiry { get; set; } = null!;
+    public int Version { get; set; }
+    public QuoteStatus Status { get; set; } = QuoteStatus.Draft; public string Currency { get; set; } = "CZK"; public decimal ExchangeRate { get; set; } = 1;
+    public decimal Subtotal { get; set; }
+    public decimal TaxTotal { get; set; }
+    public decimal DiscountTotal { get; set; }
+    public decimal DepositAmount { get; set; }
+    public decimal Total { get; set; }
+    public string? ProductionTime { get; set; }
+    public DateTime? ValidUntilUtc { get; set; }
+    public string Terms { get; set; } = ""; public string? Note { get; set; }
+    public Guid? ConvertedOrderId { get; set; }
     public List<QuoteItem> Items { get; set; } = []; public List<QuoteStatusHistory> StatusHistory { get; set; } = []; public List<QuoteAccessToken> AccessTokens { get; set; } = [];
 }
 public sealed class QuoteItem : AuditableEntity
