@@ -6,7 +6,8 @@ Server: Ubuntu 24.04 ARM64 `138.2.189.34`, uživatel `ubuntu`, Docker Compose a 
 | Část | Kde |
 |---|---|
 | Zdrojový kód | `/srv/wildspirit/src` |
-| Konfigurace a hesla | `/srv/wildspirit/src/deploy/oracle/production.env` (chmod 600, není v gitu) |
+| Konfigurace a hesla | originál `/srv/wildspirit/production.env`, kopie v `src/deploy/oracle/` (obě chmod 600, nejsou v gitu) |
+| Heslo prvního administrátora | `/srv/wildspirit/admin-credentials.txt` (jen root: `sudo cat …`) |
 | Data PostgreSQL | `/srv/wildspirit/data/postgres` |
 | Fotky produktů a klíče přihlášení | `/srv/wildspirit/data/app/files`, `/srv/wildspirit/data/app/keys` |
 | Zálohy | `/srv/wildspirit-backups` (denně 03:15 UTC, 14 dní) |
@@ -35,8 +36,9 @@ sudo mkdir -p /srv/wildspirit/src /srv/wildspirit/data/app/files /srv/wildspirit
 sudo chmod 700 /srv/wildspirit/data /srv/wildspirit/data/app/keys /srv/wildspirit-backups
 sudo tar -xzf /tmp/wildspirit.tgz -C /srv/wildspirit/src
 cd /srv/wildspirit/src/deploy/oracle
-sudo cp production.env.example production.env && sudo chmod 600 production.env
-sudo nano production.env   # heslo DB, první administrátor, případně testovací klíče Stripe
+sudo sh -c 'umask 077; cp production.env.example /srv/wildspirit/production.env'
+sudo nano /srv/wildspirit/production.env   # heslo DB, první administrátor, případně testovací klíče Stripe
+sudo cp /srv/wildspirit/production.env production.env && sudo chmod 600 production.env
 sudo docker compose --env-file production.env up -d --build
 sudo docker compose --env-file production.env logs --tail=50 web
 curl -fsS http://127.0.0.1:4175/health
@@ -50,17 +52,18 @@ sudo docker compose --env-file deploy/production.env ps caddy   # služba se mus
 B=/srv/tradereplay-backups/Caddyfile-$(date -u +%Y%m%dT%H%M%SZ)
 sudo mkdir -p /srv/tradereplay-backups && sudo cp deploy/Caddyfile "$B" && \
   sudo sh -c '{ echo; cat /srv/wildspirit/src/deploy/oracle/Caddyfile.wildspirit; } >> deploy/Caddyfile' && \
-  sudo docker compose --env-file deploy/production.env exec -T caddy caddy validate --config /etc/caddy/Caddyfile </dev/null && \
-  sudo docker compose --env-file deploy/production.env exec -T caddy caddy reload --config /etc/caddy/Caddyfile </dev/null
+  sudo docker run --rm --env-file deploy/production.env -v /srv/tradereplay/deploy/Caddyfile:/etc/caddy/Caddyfile:ro caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile && \
+  sudo docker compose --env-file deploy/production.env restart caddy
 curl -fsS https://wildspirit.138-2-189-34.sslip.io/health
 ```
 
-Kroky jsou řetězené `&&`: bez zálohy se nic nepřipíše a bez úspěšné validace se nic nereloaduje. `caddy reload` přenačte konfiguraci bez výpadku TradeReplay. Při chybě validace vrať zálohu: `sudo cp "$B" deploy/Caddyfile`.
+Kroky jsou řetězené `&&`: bez zálohy se nic nepřipíše a bez úspěšné validace se nic nerestartuje. Upravený soubor se validuje v dočasném kontejneru, protože běžící Caddy má Caddyfile připojený jako jednotlivý soubor a změnu na disku nevidí (`caddy reload` by hlásil „config is unchanged“). Restart znamená několik sekund výpadku i pro TradeReplay a TradeStats. Při chybě validace vrať zálohu: `sudo cp "$B" deploy/Caddyfile`.
 
 Po prvním úspěšném startu smaž z `production.env` řádky `WILDSPIRIT_ADMIN_EMAIL` a `WILDSPIRIT_ADMIN_PASSWORD`, kontejner znovu vytvoř (heslo jinak zůstane v jeho prostředí) a přihlas se do `/cs-CZ/Admin`:
 
 ```sh
-cd /srv/wildspirit/src/deploy/oracle && sudo docker compose --env-file production.env up -d web
+sudo sed -i '/^WILDSPIRIT_ADMIN_EMAIL=/d;/^WILDSPIRIT_ADMIN_PASSWORD=/d' /srv/wildspirit/production.env
+cd /srv/wildspirit/src/deploy/oracle && sudo cp /srv/wildspirit/production.env production.env && sudo docker compose --env-file production.env up -d web
 ```
 
 Zálohy:
@@ -81,7 +84,7 @@ Nová verze se rozbalí do čisté složky (smazané soubory, např. staré migr
 sudo systemctl start wildspirit-backup.service
 sudo rm -rf /srv/wildspirit/src.new && sudo mkdir /srv/wildspirit/src.new
 sudo tar -xzf /tmp/wildspirit.tgz -C /srv/wildspirit/src.new
-sudo cp /srv/wildspirit/src/deploy/oracle/production.env /srv/wildspirit/src.new/deploy/oracle/
+sudo cp /srv/wildspirit/production.env /srv/wildspirit/src.new/deploy/oracle/production.env
 sudo rm -rf /srv/wildspirit/src.prev && sudo mv /srv/wildspirit/src /srv/wildspirit/src.prev && sudo mv /srv/wildspirit/src.new /srv/wildspirit/src
 cd /srv/wildspirit/src/deploy/oracle
 sudo docker compose --env-file production.env up -d --build web
@@ -110,3 +113,7 @@ cd /srv/wildspirit/src/deploy/oracle
 sudo docker compose --env-file production.env ps
 sudo docker compose --env-file production.env logs --tail=50 web
 ```
+
+## Stav nasazení
+
+- 21. 11. 2026: první nasazení commitu `9bf93e4` (větev `feature/postgresql-stripe-oracle`) na `https://wildspirit.138-2-189-34.sslip.io`. Katalog je prázdný, administrátor `admin@wildspirit.local`, Stripe nenastavený (platba kartou skrytá). Záloha Caddyfile `/srv/tradereplay-backups/Caddyfile-20261121T170530Z`, první záloha eshopu `20261121T170653Z`.
