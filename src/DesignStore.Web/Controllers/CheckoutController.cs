@@ -1,4 +1,5 @@
 using DesignStore.Application.Commerce;
+using DesignStore.Domain.Commerce;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -6,7 +7,7 @@ using System.Security.Claims;
 namespace DesignStore.Web.Controllers;
 
 [Route("{culture:regex(^cs-CZ|en|de$)}/checkout")]
-public sealed class CheckoutController(ICommerceService commerce, IWebHostEnvironment environment) : Controller
+public sealed class CheckoutController(ICommerceService commerce, IOnlinePaymentService onlinePayments, IWebHostEnvironment environment) : Controller
 {
     private const string CookieName = "wildspirit_cart";
 
@@ -29,6 +30,7 @@ public sealed class CheckoutController(ICommerceService commerce, IWebHostEnviro
         try
         {
             var result = await commerce.CheckoutAsync(Token(), UserId(), request, ct);
+            if (request.PaymentMethod == PaymentMethod.Card) return await RedirectToCardPayment(culture, result.OrderId, result.AccessToken, ct);
             return RedirectToAction(nameof(Confirmation), new { culture, id = result.OrderId, token = result.AccessToken });
         }
         catch (ValidationException e)
@@ -37,23 +39,74 @@ public sealed class CheckoutController(ICommerceService commerce, IWebHostEnviro
             await PrepareCheckoutView(culture, ct);
             return View(request);
         }
+        catch (KeyNotFoundException)
+        {
+            TempData["Error"] = "Košík je prázdný nebo vypršel.";
+            return RedirectToAction("Index", "Cart", new { culture });
+        }
     }
 
     [HttpGet("confirmation/{id:guid}")]
-    public async Task<IActionResult> Confirmation(string culture, Guid id, string token, CancellationToken ct)
+    public async Task<IActionResult> Confirmation(string culture, Guid id, string token, string? payment, CancellationToken ct)
     {
         var order = await commerce.GetCustomerOrderAsync(id, token, ct);
-        return order is null ? NotFound() : View(order);
+        if (order is null) return NotFound();
+        ViewBag.AccessToken = token;
+        ViewBag.PaymentReturn = payment;
+        ViewBag.AllowCardPayment = onlinePayments.IsEnabled;
+        return View(order);
+    }
+
+    [HttpPost("pay/{id:guid}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Pay(string culture, Guid id, string token, CancellationToken ct)
+    {
+        try
+        {
+            return await RedirectToCardPayment(culture, id, token, ct);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    private async Task<IActionResult> RedirectToCardPayment(string culture, Guid id, string token, CancellationToken ct)
+    {
+        var successUrl = Url.Action(nameof(Confirmation), "Checkout", new { culture, id, token, payment = "success" }, Request.Scheme)!;
+        var cancelUrl = Url.Action(nameof(Confirmation), "Checkout", new { culture, id, token, payment = "cancelled" }, Request.Scheme)!;
+        try
+        {
+            return Redirect(await onlinePayments.StartAsync(id, token, culture, successUrl, cancelUrl, ct));
+        }
+        catch (PaymentGatewayException e)
+        {
+            TempData["Error"] = e.Message;
+        }
+        catch (ValidationException e)
+        {
+            TempData["Error"] = e.Message;
+        }
+
+        return RedirectToAction(nameof(Confirmation), new { culture, id, token });
     }
 
     private async Task PrepareCheckoutView(string culture, CancellationToken ct)
     {
         ViewBag.Cart = await commerce.GetCartAsync(Token(), UserId(), culture, ct);
         ViewBag.AllowTestPayment = environment.IsDevelopment();
+        ViewBag.AllowCardPayment = onlinePayments.IsEnabled;
     }
 
     private void AddFriendlyValidationErrors(ValidationException exception)
     {
+        // Business errors (e.g. sold out, empty cart) carry only a message and no field errors.
+        if (!exception.Errors.Any())
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            return;
+        }
+
         foreach (var error in exception.Errors)
         {
             ModelState.AddModelError(error.PropertyName, FriendlyValidationMessage(error.PropertyName, error.ErrorMessage));

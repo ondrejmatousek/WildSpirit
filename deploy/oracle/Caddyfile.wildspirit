@@ -1,0 +1,6 @@
+# Block to append to TradeReplay's /srv/tradereplay/deploy/Caddyfile (Caddy runs there with host networking).
+# Replace the hostname when a real domain is bought (and update WILDSPIRIT_DOMAIN in production.env).
+wildspirit.138-2-189-34.sslip.io {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:4175
+}

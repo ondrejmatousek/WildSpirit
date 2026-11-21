@@ -56,12 +56,12 @@ public sealed class PrivacyController(ApplicationDbContext db, UserManager<Appli
                 .Select(x => new { x.Label, x.FullName, x.Company, x.Street, x.City, x.PostalCode, x.CountryCode, x.Phone, x.IsDefaultBilling, x.IsDefaultShipping, x.CreatedAtUtc, x.UpdatedAtUtc })
                 .ToListAsync(ct),
             Orders = await db.Orders.AsNoTracking()
-                .Where(x => x.UserId == userId || x.Email == user.Email)
+                .Where(x => x.UserId == userId || x.Email.ToLower() == (user.Email ?? "").ToLower())
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .Select(x => new { x.Number, x.Email, x.Status, x.PaymentStatus, x.Currency, x.Subtotal, x.DiscountTotal, x.ShippingTotal, x.TaxTotal, x.Total, x.ShippingMethod, x.CreatedAtUtc })
                 .ToListAsync(ct),
             Inquiries = await db.ProductInquiries.AsNoTracking()
-                .Where(x => x.Email == user.Email)
+                .Where(x => x.Email.ToLower() == (user.Email ?? "").ToLower())
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .Select(x => new { x.Number, x.Status, x.Email, x.FullName, x.CountryCode, x.Quantity, x.RequestedDeadline, x.Note, x.ProductName, x.VariantName, x.Sku, x.CreatedAtUtc })
                 .ToListAsync(ct),
@@ -79,7 +79,7 @@ public sealed class PrivacyController(ApplicationDbContext db, UserManager<Appli
                 .Select(x => new { x.Email, x.Culture, x.Status, x.ConfirmedAtUtc, x.UnsubscribedAtUtc, x.CreatedAtUtc })
                 .ToListAsync(ct),
             ContactMessages = await db.ContactMessages.AsNoTracking()
-                .Where(x => x.Email == user.Email)
+                .Where(x => x.Email.ToLower() == (user.Email ?? "").ToLower())
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .Select(x => new { x.Email, x.FullName, x.Subject, x.Message, x.Culture, x.Status, x.CreatedAtUtc })
                 .ToListAsync(ct)

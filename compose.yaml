@@ -1,16 +1,17 @@
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+  postgres:
+    image: postgres:17
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_PID: Developer
-      SA_PASSWORD: "${WILDSPIRIT_SQL_PASSWORD:?Set WILDSPIRIT_SQL_PASSWORD before running compose}"
+      POSTGRES_DB: wildspirit
+      POSTGRES_USER: wildspirit
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=cs-CZ"
+      POSTGRES_PASSWORD: "${WILDSPIRIT_DB_PASSWORD:?Set WILDSPIRIT_DB_PASSWORD before running compose}"
     ports:
-      - "14333:1433"
+      - "127.0.0.1:15432:5432"
     volumes:
-      - wildspirit-sql:/var/opt/mssql
+      - wildspirit-db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U wildspirit -d wildspirit"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -20,13 +21,13 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      sqlserver:
+      postgres:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=WildSpiritDesignStore;User Id=sa;Password=${WILDSPIRIT_SQL_PASSWORD:?Set WILDSPIRIT_SQL_PASSWORD before running compose};TrustServerCertificate=True;Encrypt=False"
-      FileStorage__RootPath: /app/App_Data/storage
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=wildspirit;Username=wildspirit;Password=${WILDSPIRIT_DB_PASSWORD:?Set WILDSPIRIT_DB_PASSWORD before running compose}"
+      FileStorage__Root: /app/App_Data/storage
     ports:
       - "5198:8080"
     volumes:
@@ -38,5 +39,5 @@ services:
       retries: 12
 
 volumes:
-  wildspirit-sql:
+  wildspirit-db:
   wildspirit-storage:

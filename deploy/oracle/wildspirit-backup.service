@@ -1,0 +1,9 @@
+[Unit]
+Description=WildSpirit database and files backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Via bash: the script need not keep its executable bit after a code update.
+ExecStart=/bin/bash /srv/wildspirit/src/deploy/oracle/backup.sh

@@ -36,6 +36,7 @@ public sealed class ProductVariantInput
     public decimal? Price { get; set; }
     public AvailabilityStatus AvailabilityStatus { get; set; } = AvailabilityStatus.InStock;
     public int StockQuantity { get; set; }
+    public int? OriginalStockQuantity { get; set; }
     public bool CanBeMadeToOrder { get; set; }
     public int? EstimatedProductionDays { get; set; }
 }
@@ -71,6 +72,7 @@ public sealed class EditProductRequest
     public AvailabilityStatus AvailabilityStatus { get; set; } = AvailabilityStatus.InStock;
     public bool TrackInventory { get; set; } = true;
     public int StockQuantity { get; set; }
+    public int? OriginalStockQuantity { get; set; }
     public bool CanBeMadeToOrder { get; set; }
     public bool AutomaticallySwitchToMadeToOrder { get; set; }
     public int? EstimatedProductionDays { get; set; }

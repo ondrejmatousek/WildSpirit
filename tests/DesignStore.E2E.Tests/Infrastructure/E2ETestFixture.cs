@@ -35,7 +35,7 @@ public sealed class E2ETestFixture : IAsyncLifetime
     public string ArtifactsRoot => Path.Combine(RepoRoot, "artifacts", "playwright");
     public string ConnectionString => (Environment.GetEnvironmentVariable("DESIGNSTORE_E2E_CONNECTION")
             ?? Environment.GetEnvironmentVariable("DESIGNSTORE_TEST_CONNECTION")
-            ?? "Server=.\\SQLEXPRESS;Database={database};Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False;Connect Timeout=30")
+            ?? "Host=localhost;Port=5432;Username=postgres;Database={database};Timeout=30")
         .Replace("{database}", _databaseName, StringComparison.OrdinalIgnoreCase);
 
     public async Task InitializeAsync()
@@ -179,7 +179,7 @@ public sealed class E2ETestFixture : IAsyncLifetime
         await Expect(page.GetByText("Administrace")).ToBeVisibleAsync();
     }
 
-    public ApplicationDbContext CreateDb() => new(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(ConnectionString).Options);
+    public ApplicationDbContext CreateDb() => new(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(ConnectionString).Options);
 
     public async Task CleanupProductsAsync(string skuPrefix)
     {
@@ -291,7 +291,7 @@ public sealed class E2ETestFixture : IAsyncLifetime
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole());
-        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(ConnectionString));
+        services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(ConnectionString));
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
         {
             options.Password.RequiredLength = 12;

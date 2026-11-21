@@ -156,6 +156,13 @@
                 <input asp-for="PaymentMethod" type="radio" value="BankTransfer" checked data-testid="checkout-payment-bank" />
                 Bankovní převod
             </label>
+            @if ((bool)ViewBag.AllowCardPayment)
+            {
+                <label>
+                    <input asp-for="PaymentMethod" type="radio" value="Card" data-testid="checkout-payment-card" />
+                    Platba kartou online (Apple Pay, Google Pay)
+                </label>
+            }
             @if ((bool)ViewBag.AllowTestPayment)
             {
                 <label>

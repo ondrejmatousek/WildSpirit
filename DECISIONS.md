@@ -169,3 +169,10 @@ Následující volby nejsou nutné pro Etapu 0 a nesmí být domyšleny bez obch
 - Stav: Přijato v Etapě 7
 - Rozhodnutí: Základní HTTP hardening hlavičky se nastavují vlastním `SecurityHeadersMiddleware`. CSP je aktivní mimo Development, aby neblokovala lokální diagnostiku a zároveň chránila produkci.
 - Důvod: Jednoduchá kontrolovatelná konfigurace bez další runtime závislosti a bez skrytých externích skriptů.
+
+## ADR-027: PostgreSQL místo SQL Serveru
+
+- Stav: Přijato 21. 11. 2026
+- Rozhodnutí: EF Core používá provider Npgsql a PostgreSQL 17. Optimistická souběžnost používá systémový sloupec `xmin` (stínová vlastnost `Version`), časy se ukládají jako `timestamp with time zone` v UTC. Dřívější SQL Server migrace byly nahrazeny jedinou `InitialPostgreSql`, protože ostrá data neexistovala.
+- Důvod: provoz na stávajícím Oracle Cloud Always Free serveru (ARM64), kde SQL Server neběží; PostgreSQL je zdarma, běží v Dockeru vedle aplikace a je v .NET plně podporovaný.
+- Důsledky: PostgreSQL porovnává text citlivě na velikost písmen (vyhledání podle e-mailu a slugu je proto výslovně case-insensitive). Serializovatelné transakce při souběhu končí chybou serializace; checkout ji převádí na srozumitelnou hlášku a nic nezapíše.

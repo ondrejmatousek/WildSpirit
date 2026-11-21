@@ -40,7 +40,7 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         b.Property(x => x.StartingPrice).HasPrecision(18, 2);
         b.Property(x => x.VatRate).HasPrecision(5, 2);
         b.Property(x => x.MainImageUrl).HasMaxLength(500);
-        b.Property(x => x.RowVersion).IsRowVersion();
+        b.ConcurrencyToken();
         b.HasIndex(x => x.Sku).IsUnique();
         b.HasIndex(x => new { x.IsPublished, x.AvailabilityStatus, x.DisplayOrder });
         b.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
@@ -72,7 +72,7 @@ internal sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Pro
         b.Property(x => x.Sku).HasMaxLength(64);
         b.Property(x => x.Name).HasMaxLength(160);
         b.Property(x => x.Price).HasPrecision(18, 2);
-        b.Property(x => x.RowVersion).IsRowVersion();
+        b.ConcurrencyToken();
         b.HasIndex(x => x.Sku).IsUnique();
     }
 }

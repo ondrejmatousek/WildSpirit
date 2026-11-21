@@ -67,14 +67,32 @@ public sealed class SecurityCompletionTests
     }
 
     [Fact]
-    public void Docker_compose_requires_external_sql_password_and_exposes_healthchecks()
+    public void Docker_compose_requires_external_database_password_and_exposes_healthchecks()
     {
         var compose = File.ReadAllText(FindRepoFile("compose.yaml"));
 
-        Assert.Contains("WILDSPIRIT_SQL_PASSWORD:?", compose);
+        Assert.Contains("WILDSPIRIT_DB_PASSWORD:?", compose);
         Assert.Contains("/health", compose);
-        Assert.Contains("wildspirit-sql", compose);
+        Assert.Contains("wildspirit-db", compose);
+        Assert.Contains("127.0.0.1:15432:5432", compose);
         Assert.DoesNotContain("WildSpirit.Dev.Sql", compose);
+    }
+
+    [Fact]
+    public void Oracle_deployment_keeps_ports_local_and_secrets_out_of_the_repository()
+    {
+        var compose = File.ReadAllText(FindRepoFile("deploy", "oracle", "compose.yaml"));
+        var gitignore = File.ReadAllText(FindRepoFile(".gitignore"));
+        var dockerignore = File.ReadAllText(FindRepoFile(".dockerignore"));
+
+        Assert.Contains("\"127.0.0.1:4175:8080\"", compose);
+        Assert.DoesNotContain("5432:5432", compose);
+        Assert.Contains("WILDSPIRIT_DB_PASSWORD:?", compose);
+        Assert.Contains("ASPNETCORE_FORWARDEDHEADERS_ENABLED", compose);
+        Assert.Contains("DataProtection__KeysPath", compose);
+        Assert.Contains("FileStorage__Root:", compose);
+        Assert.Contains("deploy/oracle/production.env", gitignore);
+        Assert.Contains("**/*.env", dockerignore);
     }
 
     private static string FindRepoFile(params string[] parts)

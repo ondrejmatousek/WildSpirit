@@ -10,7 +10,7 @@ Tento dokument popisuje cílovou architekturu. Etapa 0 neobsahuje aplikační im
 
 ## 2. Architektonické zásady
 
-- Modulární monolit nad ASP.NET Core 10 MVC; jeden nasazovaný web a jeden SQL Server.
+- Modulární monolit nad ASP.NET Core 10 MVC; jeden nasazovaný web a jedna databáze PostgreSQL (od 21. 11. 2026, viz ADR-027; dříve SQL Server).
 - Clean Architecture bez mechanických repository, MediatR nebo CQRS vrstev.
 - Doména nezná EF Core, Identity, MVC, e-mail ani úložiště souborů.
 - Aplikační vrstva koordinuje případy užití a transakční hranice.

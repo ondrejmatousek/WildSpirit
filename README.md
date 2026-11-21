@@ -4,19 +4,19 @@ Základ prémiového vícejazyčného e-shopu pro autorský nábytek, svítidla 
 
 ## Technologie
 
-.NET 10, ASP.NET Core MVC, Razor Views, Entity Framework Core 10, SQL Server, ASP.NET Core Identity, FluentValidation, Serilog, ImageSharp 3.1 a xUnit.
+.NET 10, ASP.NET Core MVC, Razor Views, Entity Framework Core 10, PostgreSQL 17 (Npgsql), ASP.NET Core Identity, FluentValidation, Serilog, ImageSharp 3.1 a xUnit.
 
 ## Struktura
 
 - `src/DesignStore.Domain` – katalogové entity a obchodní pravidla dostupnosti.
 - `src/DesignStore.Application` – DTO, případy čtení katalogu a aplikační porty.
-- `src/DesignStore.Infrastructure` – EF Core, SQL Server, Identity, seed a implementace katalogu.
+- `src/DesignStore.Infrastructure` – EF Core, PostgreSQL, Identity, seed a implementace katalogu.
 - `src/DesignStore.Web` – MVC controllery, Razor Views, lokalizované routy a vlastní frontend.
-- `tests/DesignStore.Tests` – unit, architecture a SQL Server integrační testy.
+- `tests/DesignStore.Tests` – unit, architecture a PostgreSQL integrační testy.
 
 ## Lokální spuštění
 
-Požadavky: .NET SDK 10 a SQL Server Express.
+Požadavky: .NET SDK 10 a PostgreSQL 17 (lokálně např. `winget install PostgreSQL.PostgreSQL.17`).
 
 ```powershell
 dotnet restore DesignStore.slnx
@@ -24,7 +24,7 @@ dotnet ef database update --project src/DesignStore.Infrastructure --startup-pro
 dotnet run --project src/DesignStore.Web
 ```
 
-Výchozí vývojový connection string používá lokální instanci `.\SQLEXPRESS` a databázi `WildSpiritDesignStore`. V SSMS odpovídá lokálnímu SQL Express připojení. LocalDB není výchozí cesta pro aplikaci ani testy, protože na tomto stroji selhává její LocalDB API. Pro jinou instanci nastavte `ConnectionStrings__DefaultConnection` přes environment variable nebo user secrets.
+Výchozí vývojový connection string míří na lokální PostgreSQL `localhost:5432`, databázi `wildspirit` a uživatele `postgres`. Heslo v repozitáři není: Npgsql ho čte ze standardního souboru `%APPDATA%\postgresql\pgpass.conf` (řádek `localhost:5432:*:postgres:<heslo>`). Pro jiný server nastavte `ConnectionStrings__DefaultConnection` přes environment variable nebo user secrets. Do 21. 11. 2026 projekt používal SQL Server; migrace byly při přechodu nahrazeny jedinou `InitialPostgreSql` (ostrá data neexistovala), viz ADR-027.
 
 Development seed se spouští idempotentně po aplikaci migrací a vytváří katalog, role a potvrzené lokální účty. Výchozí development administrátor:
 
@@ -50,7 +50,7 @@ Přesné lokální adresy:
 
 Administrace vyžaduje příslušnou policy a některou z povolených rolí, například `Administrator` nebo `ContentManager`. Produkty, kategorie, kolekce, materiály a barvy lze spravovat odděleně; produktový editor obsahuje překlady, SEO, varianty, volby, materiály a upload obrázků.
 
-Obrázky se ukládají mimo `wwwroot` do adresáře nastaveného přes `FileStorage:RootPath`. Výchozí development cesta je `App_Data/storage`. Povolené jsou JPEG, PNG a WebP do 12 MB; server obsah dekóduje, odstraní metadata a vytvoří WebP hlavní obrázek a náhled. Tato cesta nemá být sdílená s adresářem zdrojových souborů ani obsluhována jako statické soubory.
+Obrázky se ukládají mimo `wwwroot` do adresáře nastaveného přes `FileStorage:Root`. Výchozí development cesta je `App_Data/storage`. Povolené jsou JPEG, PNG a WebP do 12 MB; server obsah dekóduje, odstraní metadata a vytvoří WebP hlavní obrázek a náhled. Tato cesta nemá být sdílená s adresářem zdrojových souborů ani obsluhována jako statické soubory.
 
 V administraci produktu lze po prvním uložení produktu nahrát až 5 fotografií najednou přes drag & drop zónu. Každý soubor stále prochází stejnou serverovou validací typu, velikosti, dekódování a vytvořením WebP derivátů.
 
@@ -60,14 +60,14 @@ V administraci produktu lze po prvním uložení produktu nahrát až 5 fotograf
 dotnet test DesignStore.slnx
 ```
 
-SQL integrační fixture vytváří databázi `DesignStoreTests_<guid>`, aplikuje skutečnou migraci a po testu ji odstraní. Výchozí je `.\SQLEXPRESS`. Pro CI nebo jinou instanci použijte connection string s tokenem `{database}`:
+Integrační fixture vytváří databázi `designstore_tests_<guid>`, aplikuje skutečnou migraci a po testu ji odstraní. Výchozí je lokální PostgreSQL `localhost:5432` jako `postgres` s heslem z `pgpass.conf`. Pro CI nebo jiný server použijte connection string s tokenem `{database}`:
 
 ```powershell
-$env:DESIGNSTORE_TEST_CONNECTION='Server=localhost,1433;Database={database};User Id=sa;Password=...;TrustServerCertificate=True;Encrypt=False'
+$env:DESIGNSTORE_TEST_CONNECTION='Host=localhost;Port=5432;Database={database};Username=postgres;Password=...'
 dotnet test DesignStore.slnx
 ```
 
-LocalDB se nepoužívá jako běžná vývojová ani testovací cesta. Pokud je potřeba diagnostikovat starou lokální databázi, řešte ji odděleně; aplikace a testy mají běžet proti SQL Server Express přes standardní název instance.
+Testy běží proti skutečnému PostgreSQL včetně souběžných nákupů; SQLite ani InMemory provider je nenahrazují.
 
 ## Rozsah po Etapě 2
 
@@ -114,8 +114,8 @@ Nové lokální/provozní adresy:
 Docker Compose vyžaduje heslo mimo repozitář:
 
 ```powershell
-$env:WILDSPIRIT_SQL_PASSWORD='zvolte-silne-lokalni-heslo'
+$env:WILDSPIRIT_DB_PASSWORD='zvolte-silne-lokalni-heslo'
 docker compose up --build
 ```
 
-Compose vystaví web na `http://localhost:5198` a SQL Server na lokálním portu `14333`. Heslo ani produkční connection stringy se neukládají do repozitáře.
+Compose vystaví web na `http://localhost:5198` a PostgreSQL jen na loopbacku `127.0.0.1:15432`. Heslo ani produkční connection stringy se neukládají do repozitáře.

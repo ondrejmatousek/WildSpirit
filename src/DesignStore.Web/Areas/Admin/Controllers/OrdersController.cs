@@ -60,16 +60,40 @@ public sealed class OrdersController(ICommerceService commerce) : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Status(Guid id, OrderStatus status, CancellationToken ct)
     {
-        await commerce.ChangeStatusAsync(id, status, User.Identity?.Name, ct);
-        TempData["Success"] = "Stav objednávky byl změněn.";
+        try
+        {
+            await commerce.ChangeStatusAsync(id, status, User.Identity?.Name, ct);
+            TempData["Success"] = "Stav objednávky byl změněn.";
+        }
+        catch (ValidationException e)
+        {
+            TempData["Error"] = e.Message;
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+
         return RedirectToAction(nameof(Detail), new { id });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
-        await commerce.CancelAsync(id, User.Identity?.Name, ct);
-        TempData["Success"] = "Objednávka byla zrušena a sklad vrácen.";
+        try
+        {
+            await commerce.CancelAsync(id, User.Identity?.Name, ct);
+            TempData["Success"] = "Objednávka byla zrušena a sklad vrácen.";
+        }
+        catch (ValidationException e)
+        {
+            TempData["Error"] = e.Message;
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+
         return RedirectToAction(nameof(Detail), new { id });
     }
 
