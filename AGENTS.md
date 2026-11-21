@@ -4,6 +4,11 @@
 
 Production ASP.NET Core MVC ecommerce application.
 
+Development workflow is defined centrally in the app-development skill
+(C:\AI-Harness\skills\app-development\SKILL.md); start tasks with
+`$app-development <task>`. Shared rules: C:\AI-Harness\rules, quality gates:
+C:\AI-Harness\gates\quality-gates.md, project configuration: C:\AI-Harness\projects.
+
 ## Rules
 
 - Respect ARCHITECTURE.md and DATA_MODEL.md when relevant.

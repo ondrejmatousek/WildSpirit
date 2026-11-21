@@ -4,5 +4,9 @@
 **/.git/
 src/DesignStore.Web/App_Data/
 appsettings.*.local.json
+artifacts/
+**/.tmpobj/
+deploy/**/*.env
+**/*.env
 *.user
 *.suo

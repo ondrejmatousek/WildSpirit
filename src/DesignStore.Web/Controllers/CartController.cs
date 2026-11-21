@@ -26,21 +26,53 @@ public sealed class CartController(ICommerceService commerce) : Controller
         catch (ValidationException e)
         {
             TempData["Error"] = e.Message;
-            return Redirect(Request.Headers.Referer.ToString());
+            return BackToReferrer(culture);
         }
     }
 
     [HttpPost("quantity"), ValidateAntiForgeryToken]
     public async Task<IActionResult> Quantity(string culture, Guid itemId, int quantity, CancellationToken ct)
     {
-        await commerce.UpdateQuantityAsync(Token(), UserId(), itemId, quantity, ct);
+        try
+        {
+            await commerce.UpdateQuantityAsync(Token(), UserId(), itemId, quantity, ct);
+        }
+        catch (ValidationException e)
+        {
+            TempData["Error"] = e.Message;
+        }
+        catch (KeyNotFoundException)
+        {
+            TempData["Error"] = "Položka košíku již neexistuje.";
+        }
+
         return RedirectToAction(nameof(Index), new { culture });
     }
 
     [HttpPost("remove"), ValidateAntiForgeryToken]
     public async Task<IActionResult> Remove(string culture, Guid itemId, CancellationToken ct)
     {
-        await commerce.RemoveAsync(Token(), UserId(), itemId, ct);
+        try
+        {
+            await commerce.RemoveAsync(Token(), UserId(), itemId, ct);
+        }
+        catch (KeyNotFoundException)
+        {
+            TempData["Error"] = "Položka košíku již neexistuje.";
+        }
+
+        return RedirectToAction(nameof(Index), new { culture });
+    }
+
+    IActionResult BackToReferrer(string culture)
+    {
+        var referer = Request.Headers.Referer.ToString();
+        if (Uri.TryCreate(referer, UriKind.Absolute, out var uri) && string.Equals(uri.Authority, Request.Host.Value, StringComparison.OrdinalIgnoreCase))
+        {
+            var path = uri.PathAndQuery;
+            if (Url.IsLocalUrl(path)) return LocalRedirect(path);
+        }
+
         return RedirectToAction(nameof(Index), new { culture });
     }
 
@@ -56,6 +88,10 @@ public sealed class CartController(ICommerceService commerce) : Controller
         catch (ValidationException e)
         {
             TempData["Error"] = e.Message;
+        }
+        catch (KeyNotFoundException)
+        {
+            TempData["Error"] = "Košík je prázdný.";
         }
 
         return RedirectToAction(nameof(Index), new { culture });

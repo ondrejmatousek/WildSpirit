@@ -7,12 +7,15 @@ using DesignStore.Infrastructure.Commerce;
 using DesignStore.Infrastructure.Files;
 using DesignStore.Infrastructure.Identity;
 using DesignStore.Infrastructure.Marketing;
+using DesignStore.Infrastructure.Payments;
 using DesignStore.Infrastructure.Persistence;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace DesignStore.Infrastructure;
 
@@ -22,7 +25,7 @@ public static class DependencyInjection
     {
         var connection = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is missing.");
-        services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
+        services.AddDbContext<ApplicationDbContext>(o => o.UseNpgsql(connection));
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(o =>
         {
             o.Password.RequiredLength = 12;
@@ -48,6 +51,9 @@ public static class DependencyInjection
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<ICatalogAdminService, CatalogAdminService>();
         services.AddScoped<DevelopmentSeed>();
+        services.AddScoped<ProductionBootstrap>();
+        var keysPath = configuration["DataProtection:KeysPath"];
+        if (!string.IsNullOrWhiteSpace(keysPath)) services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath)).SetApplicationName("WildSpirit");
         services.AddSingleton<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<ICommerceService, CommerceService>();
         services.AddScoped<IInquiryQuoteService, InquiryQuoteService>();
@@ -55,6 +61,11 @@ public static class DependencyInjection
         services.AddScoped<DesignStore.Application.Production.IProductionService, ProductionService>();
         services.AddScoped<IPaymentService, BankTransferPaymentService>();
         services.AddScoped<IPaymentService, TestPaymentService>();
+        services.Configure<StripeOptions>(configuration.GetSection(StripeOptions.SectionName));
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddHttpClient<IOnlinePaymentGateway, StripeCheckoutGateway>(c => { c.BaseAddress = new Uri(StripeCheckoutGateway.ApiBaseAddress); c.Timeout = TimeSpan.FromSeconds(30); });
+        services.AddScoped<IPaymentService, CardPaymentService>();
+        services.AddScoped<IOnlinePaymentService, OnlinePaymentService>();
         services.AddHostedService<OutboxWorker>();
         return services;
     }

@@ -14,7 +14,7 @@ public sealed class OrderContactUpdateRequest { public string Email { get; set; 
 public sealed record OrderAddressView(AddressType Type, string FullName, string Company, string Street, string City, string PostalCode, string CountryCode, string Phone);
 public sealed record OrderInventoryMovementView(string Type, string Sku, string ItemName, int QuantityChange, int PreviousQuantity, int NewQuantity, string Reason, DateTime CreatedAtUtc);
 public sealed record GiftVoucherCodeView(string Code, decimal Value, bool IsActive, int UsedCount, int? MaximumUses);
-public sealed record OrderDetail(Guid Id, string Number, string Email, DateTime CreatedAtUtc, OrderStatus Status, PaymentStatus PaymentStatus, decimal Subtotal, decimal Discount, decimal Shipping, decimal Tax, decimal Total, string Currency, string ShippingMethod, IReadOnlyList<CartLine> Items, IReadOnlyList<OrderAddressView> Addresses, IReadOnlyList<OrderInventoryMovementView> InventoryMovements, IReadOnlyList<string> History, IReadOnlyList<GiftVoucherCodeView> GiftVoucherCodes);
+public sealed record OrderDetail(Guid Id, string Number, string Email, DateTime CreatedAtUtc, OrderStatus Status, PaymentStatus PaymentStatus, decimal Subtotal, decimal Discount, decimal Shipping, decimal Tax, decimal Total, string Currency, string ShippingMethod, IReadOnlyList<CartLine> Items, IReadOnlyList<OrderAddressView> Addresses, IReadOnlyList<OrderInventoryMovementView> InventoryMovements, IReadOnlyList<string> History, IReadOnlyList<GiftVoucherCodeView> GiftVoucherCodes, PaymentMethod? PaymentMethod = null);
 public interface ICommerceService
 {
     Task<CartView> GetCartAsync(string token, Guid? userId, string culture, CancellationToken ct);
@@ -28,9 +28,13 @@ public interface ICommerceService
     Task UpdateOrderContactAsync(Guid id, OrderContactUpdateRequest request, string? actor, CancellationToken ct);
     Task CancelAsync(Guid id, string? actor, CancellationToken ct);
     Task ChangeStatusAsync(Guid id, OrderStatus status, string? actor, CancellationToken ct);
+    /// <summary>Records a verified online payment. Idempotent per event; returns false when the event does not match the order (unknown order, amount or currency).</summary>
+    Task<bool> ConfirmOnlinePaymentAsync(OnlinePaymentEvent paymentEvent, CancellationToken ct);
+    /// <summary>Cancels a still-unpaid card order (returning stock) when its latest payment page expired.</summary>
+    Task<bool> ExpireOnlinePaymentAsync(OnlinePaymentEvent paymentEvent, CancellationToken ct);
 }
 public interface IPaymentService { PaymentMethod Method { get; } Task<PaymentResult> CreateAsync(string orderNumber, decimal total, string currency, string idempotencyKey, CancellationToken ct); }
 public sealed record PaymentResult(PaymentStatus Status, string Reference, string ExternalEventId);
 public sealed class AddToCartRequestValidator : AbstractValidator<AddToCartRequest> { public AddToCartRequestValidator() { RuleFor(x => x.ProductId).NotEmpty(); RuleFor(x => x.Quantity).InclusiveBetween(1, 99); } }
-public sealed class CheckoutRequestValidator : AbstractValidator<CheckoutRequest> { public CheckoutRequestValidator() { RuleFor(x => x.IdempotencyKey).NotEmpty().MaximumLength(100); RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(320); RuleFor(x => x.ShippingMethod).Must(x => x is "standard" or "pickup"); RuleFor(x => x.BillingAddress).SetValidator(new AddressInputValidator()); When(x => !x.UseBillingAsShipping, () => RuleFor(x => x.ShippingAddress).SetValidator(new AddressInputValidator())); } }
+public sealed class CheckoutRequestValidator : AbstractValidator<CheckoutRequest> { public CheckoutRequestValidator() { RuleFor(x => x.IdempotencyKey).NotEmpty().MaximumLength(100); RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(320); RuleFor(x => x.ShippingMethod).Must(x => x is "standard" or "pickup"); RuleFor(x => x.PaymentMethod).IsInEnum();RuleFor(x => x.BillingAddress).SetValidator(new AddressInputValidator()); When(x => !x.UseBillingAsShipping, () => RuleFor(x => x.ShippingAddress).SetValidator(new AddressInputValidator())); } }
 public sealed class AddressInputValidator : AbstractValidator<AddressInput> { public AddressInputValidator() { RuleFor(x => x.FullName).NotEmpty().MaximumLength(200); RuleFor(x => x.Street).NotEmpty().MaximumLength(250); RuleFor(x => x.City).NotEmpty().MaximumLength(120); RuleFor(x => x.PostalCode).NotEmpty().MaximumLength(20); RuleFor(x => x.CountryCode).Matches("^[A-Z]{2}$"); RuleFor(x => x.Phone).MaximumLength(40).Matches(@"^(\+420\s?)?[1-9][0-9]{2}\s?[0-9]{3}\s?[0-9]{3}$").When(x => !string.IsNullOrWhiteSpace(x.Phone)); } }

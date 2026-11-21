@@ -32,7 +32,7 @@
 ## Deployment checklist
 
 - Set `ASPNETCORE_ENVIRONMENT=Production`.
-- Set a production SQL Server connection string through secrets.
+- Set the production PostgreSQL connection string through secrets (environment variable or env file outside the repository).
 - Set `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret`, Facebook values and any future provider secrets through the hosting secret store.
 - Configure a real e-mail provider before enabling customer-facing e-mail delivery.
 - Configure a production file/object storage location.

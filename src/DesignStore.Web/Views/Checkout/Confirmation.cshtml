@@ -19,6 +19,35 @@
     <strong>@Model.Total.ToString("N0") @Model.Currency</strong>
 </section>
 
+@if (TempData["Error"] is string paymentError)
+{
+    <p class="validation-summary-errors" role="alert">@paymentError</p>
+}
+
+@if (Model.PaymentMethod == PaymentMethod.Card && Model.Status == OrderStatus.PendingPayment && Model.PaymentStatus != PaymentStatus.Paid)
+{
+    <section class="section card-payment">
+        @if (ViewBag.PaymentReturn as string == "success")
+        {
+            <p data-testid="card-payment-processing">Platbu ověřujeme. Stav objednávky se aktualizuje během několika okamžiků – stránku můžete obnovit.</p>
+        }
+        else
+        {
+            @if (ViewBag.PaymentReturn as string == "cancelled")
+            {
+                <p>Platba nebyla dokončena. Můžete ji zkusit znovu.</p>
+            }
+            @if ((bool)ViewBag.AllowCardPayment)
+            {
+                <form method="post" asp-action="Pay" asp-route-culture="@Context.GetRouteValue("culture")" asp-route-id="@Model.Id">
+                    <input type="hidden" name="token" value="@ViewBag.AccessToken" />
+                    <button class="button" type="submit" data-testid="card-payment-retry">Zaplatit kartou</button>
+                </form>
+            }
+        }
+    </section>
+}
+
 @if (Model.GiftVoucherCodes.Count > 0)
 {
     <section class="section gift-voucher-result">

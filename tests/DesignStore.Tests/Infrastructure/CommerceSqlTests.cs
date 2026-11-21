@@ -3,14 +3,14 @@ using DesignStore.Domain.Catalog;
 using DesignStore.Domain.Commerce;
 using DesignStore.Infrastructure.Commerce;
 using FluentValidation;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Hosting;
 namespace DesignStore.Tests.Infrastructure;
 
-[Collection("SqlServer database")]
-public sealed class CommerceSqlTests(SqlServerDatabaseFixture database)
+[Collection("PostgreSQL database")]
+public sealed class CommerceSqlTests(PostgresDatabaseFixture database)
 {
     static CommerceService Service(DesignStore.Infrastructure.Persistence.ApplicationDbContext db) => new(db, [new BankTransferPaymentService()], new AddToCartRequestValidator(), new CheckoutRequestValidator());
     static CommerceService Service(DesignStore.Infrastructure.Persistence.ApplicationDbContext db, string environment) => new(db, [new BankTransferPaymentService(), new TestPaymentService(new TestHostEnvironment { EnvironmentName = environment })], new AddToCartRequestValidator(), new CheckoutRequestValidator());
@@ -23,7 +23,7 @@ public sealed class CommerceSqlTests(SqlServerDatabaseFixture database)
     [Fact]
     public async Task Two_checkouts_cannot_buy_the_same_last_item_and_zero_switches_to_unavailable()
     { var productId = await Product(1); var t1 = Guid.NewGuid().ToString("N"); var t2 = Guid.NewGuid().ToString("N"); await using (var prep = database.CreateDb()) { var s = Service(prep); await s.AddAsync(t1, null, "cs-CZ", new(productId, null, 1, []), default); await s.AddAsync(t2, null, "cs-CZ", new(productId, null, 1, []), default); } var tasks = new[] { Run(t1, "race-1"), Run(t2, "race-2") }; var results = await Task.WhenAll(tasks); Assert.Equal(1, results.Count(x => x)); await using var verify = database.CreateDb(); var p = await verify.Products.SingleAsync(x => x.Id == productId); Assert.Equal(0, p.StockQuantity); Assert.Equal(AvailabilityStatus.Unavailable, p.AvailabilityStatus); Assert.Equal(1, await verify.Orders.CountAsync(x => x.Items.Any(i => i.ProductId == productId))); }
-    async Task<bool> Run(string token, string key) { try { await using var db = database.CreateDb(); await Service(db).CheckoutAsync(token, null, Checkout(key), default); return true; } catch (ValidationException) { return false; } catch (DbUpdateException) { return false; } catch (InvalidOperationException ex) when (ex.InnerException is SqlException sql && sql.Number == 1205) { return false; } }
+    async Task<bool> Run(string token, string key) { try { await using var db = database.CreateDb(); await Service(db).CheckoutAsync(token, null, Checkout(key), default); return true; } catch (ValidationException) { return false; } catch (DbUpdateException) { return false; } }
     [Fact] public async Task Made_to_order_product_cannot_be_added_to_cart() { var id = await Product(0, true); await using var db = database.CreateDb(); var p = await db.Products.SingleAsync(x => x.Id == id); p.AvailabilityStatus = AvailabilityStatus.MadeToOrder; await db.SaveChangesAsync(); await Assert.ThrowsAsync<ValidationException>(() => Service(db).AddAsync(Guid.NewGuid().ToString("N"), null, "cs-CZ", new(id, null, 1, []), default)); }
     [Fact]
     public async Task Cart_routine_update_discount_and_remove_saves_without_database_errors()
@@ -206,6 +206,223 @@ public sealed class CommerceSqlTests(SqlServerDatabaseFixture database)
             Assert.Equal("+420 774 501 987", shipping.Phone);
             Assert.Contains(order.StatusHistory, x => x.Reason == "Administrace: upraven kontakt a adresa");
         }
+    }
+    [Fact]
+    public async Task User_cart_is_not_visible_to_anonymous_visitor_on_same_browser_after_logout()
+    {
+        var productId = await Product(3);
+        var token = Guid.NewGuid().ToString("N");
+        var userId = Guid.NewGuid();
+        await using (var db = database.CreateDb())
+        {
+            var service = Service(db);
+            await service.AddAsync(token, null, "cs-CZ", new AddToCartRequest(productId, null, 1, []), default);
+            Assert.Single((await service.GetCartAsync(token, userId, "cs-CZ", default)).Items);
+        }
+        await using (var db = database.CreateDb())
+        {
+            var service = Service(db);
+            Assert.Empty((await service.GetCartAsync(token, null, "cs-CZ", default)).Items);
+            await Assert.ThrowsAsync<ValidationException>(() => service.CheckoutAsync(token, null, Checkout($"logout-{Guid.NewGuid():N}"), default));
+        }
+        await using (var db = database.CreateDb())
+        {
+            Assert.Single((await Service(db).GetCartAsync(token, userId, "cs-CZ", default)).Items);
+        }
+    }
+    [Fact]
+    public async Task Cart_culture_is_kept_for_order_snapshot()
+    {
+        var productId = await Product(2);
+        var token = Guid.NewGuid().ToString("N");
+        await using (var db = database.CreateDb())
+        {
+            db.ProductTranslations.Add(new ProductTranslation { ProductId = productId, Culture = "en", Name = "Test product EN", Slug = $"product-en-{Guid.NewGuid():N}" });
+            await db.SaveChangesAsync();
+        }
+        Guid orderId;
+        await using (var db = database.CreateDb())
+        {
+            var service = Service(db);
+            await service.AddAsync(token, null, "en", new AddToCartRequest(productId, null, 1, []), default);
+            orderId = (await service.CheckoutAsync(token, null, Checkout($"culture-{Guid.NewGuid():N}"), default)).OrderId;
+        }
+        await using var verify = database.CreateDb();
+        Assert.Equal("Test product EN", await verify.Set<OrderItem>().Where(x => x.OrderId == orderId).Select(x => x.ProductName).SingleAsync());
+    }
+    [Fact]
+    public async Task Cancelling_paid_gift_voucher_order_deactivates_unused_voucher_codes()
+    {
+        Guid productId;
+        await using (var db = database.CreateDb())
+        {
+            var category = new Category { Translations = [new CategoryTranslation { Culture = "cs-CZ", Name = "Voucher", Slug = $"voucher-{Guid.NewGuid():N}", ShortDescription = "Test" }] };
+            var product = new Product { Category = category, Sku = $"WS-GIFT-VOUCHER-{Guid.NewGuid():N}"[..40], BasePrice = 1000, VatRate = 21, IsPublished = true, AvailabilityStatus = AvailabilityStatus.InStock, StockQuantity = 5, Translations = [new ProductTranslation { Culture = "cs-CZ", Name = "Poukaz", Slug = $"poukaz-{Guid.NewGuid():N}" }] };
+            db.Products.Add(product);
+            await db.SaveChangesAsync();
+            productId = product.Id;
+        }
+        var token = Guid.NewGuid().ToString("N");
+        CheckoutResult result;
+        await using (var db = database.CreateDb())
+        {
+            var service = Service(db, Environments.Development);
+            await service.AddAsync(token, null, "cs-CZ", new AddToCartRequest(productId, null, 1, []), default);
+            var checkout = Checkout($"voucher-{Guid.NewGuid():N}");
+            checkout.PaymentMethod = PaymentMethod.Test;
+            result = await service.CheckoutAsync(token, null, checkout, default);
+            Assert.True(await db.DiscountCodes.AsNoTracking().AnyAsync(x => x.CreatedBy == result.OrderNumber && x.IsActive));
+            await service.CancelAsync(result.OrderId, "test", default);
+        }
+        await using var verify = database.CreateDb();
+        var codes = await verify.DiscountCodes.AsNoTracking().Where(x => x.CreatedBy == result.OrderNumber).ToListAsync();
+        Assert.Single(codes);
+        Assert.False(codes[0].IsActive);
+    }
+    static CommerceService CardService(DesignStore.Infrastructure.Persistence.ApplicationDbContext db, bool enabled = true) => new(db, [new BankTransferPaymentService(), new CardPaymentService(new FakeOnlineGateway(enabled))], new AddToCartRequestValidator(), new CheckoutRequestValidator());
+    async Task<CheckoutResult> CardOrder(Guid productId)
+    {
+        var token = Guid.NewGuid().ToString("N");
+        await using var db = database.CreateDb();
+        var service = CardService(db);
+        await service.AddAsync(token, null, "cs-CZ", new AddToCartRequest(productId, null, 1, []), default);
+        var checkout = Checkout($"card-{Guid.NewGuid():N}");
+        checkout.PaymentMethod = PaymentMethod.Card;
+        return await service.CheckoutAsync(token, null, checkout, default);
+    }
+    [Fact]
+    public async Task Card_order_is_pending_until_verified_payment_and_payment_is_recorded_once()
+    {
+        var result = await CardOrder(await Product(2));
+        Assert.Equal(PaymentStatus.Pending, result.PaymentStatus);
+        var eventId = $"evt_{Guid.NewGuid():N}";
+        var paid = new OnlinePaymentEvent(eventId, "checkout.session.completed", true, result.OrderId, "cs_test_paid", (long)(result.Total * 100), "czk");
+        await using (var db = database.CreateDb())
+        {
+            var service = CardService(db);
+            Assert.False(await service.ConfirmOnlinePaymentAsync(paid with { EventId = $"evt_{Guid.NewGuid():N}", AmountMinor = 100 }, default));
+            Assert.False(await service.ConfirmOnlinePaymentAsync(paid with { EventId = $"evt_{Guid.NewGuid():N}", Currency = "eur" }, default));
+            Assert.True(await service.ConfirmOnlinePaymentAsync(paid, default));
+        }
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ConfirmOnlinePaymentAsync(paid, default));
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ConfirmOnlinePaymentAsync(paid with { EventId = $"evt_{Guid.NewGuid():N}" }, default));
+        var secondSession = paid with { EventId = $"evt_{Guid.NewGuid():N}", SessionId = "cs_test_second" };
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ConfirmOnlinePaymentAsync(secondSession, default));
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ConfirmOnlinePaymentAsync(secondSession, default));
+
+        await using var verify = database.CreateDb();
+        var order = await verify.Orders.AsNoTracking().Include(x => x.Payments).Include(x => x.StatusHistory).SingleAsync(x => x.Id == result.OrderId);
+        Assert.Equal(OrderStatus.Paid, order.Status);
+        Assert.Equal(PaymentStatus.Paid, order.PaymentStatus);
+        Assert.Equal(2, order.Payments.Count);
+        Assert.Single(order.StatusHistory, x => x.Reason.Contains("zaplacena kartou podruhé"));
+        var payment = order.Payments.Single(x => x.ProviderReference == "cs_test_paid");
+        Assert.Equal(PaymentMethod.Card, payment.Method);
+        Assert.Equal(eventId, payment.ExternalEventId);
+        Assert.NotNull(payment.PaidAtUtc);
+        Assert.Single(order.StatusHistory, x => x.Reason.StartsWith("Platba kartou přijata"));
+    }
+    [Fact]
+    public async Task Card_payment_for_cancelled_order_is_recorded_but_does_not_reopen_order()
+    {
+        var result = await CardOrder(await Product(1));
+        await using (var db = database.CreateDb()) await CardService(db).CancelAsync(result.OrderId, "test", default);
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ConfirmOnlinePaymentAsync(new OnlinePaymentEvent($"evt_{Guid.NewGuid():N}", "checkout.session.completed", true, result.OrderId, "cs_late", (long)(result.Total * 100), "czk"), default));
+        await using var verify = database.CreateDb();
+        var order = await verify.Orders.AsNoTracking().Include(x => x.StatusHistory).SingleAsync(x => x.Id == result.OrderId);
+        Assert.Equal(OrderStatus.Cancelled, order.Status);
+        Assert.Equal(PaymentStatus.Paid, order.PaymentStatus);
+        Assert.Contains(order.StatusHistory, x => x.Reason.Contains("vrátit peníze"));
+    }
+    [Fact]
+    public async Task Starting_card_payment_requires_order_token_and_stores_session_reference()
+    {
+        var result = await CardOrder(await Product(2));
+        await using (var db = database.CreateDb())
+        {
+            var online = new OnlinePaymentService(db, CardService(db), new FakeOnlineGateway(true), NullLogger<OnlinePaymentService>.Instance);
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => online.StartAsync(result.OrderId, "wrong-token", "cs-CZ", "https://shop.test/ok", "https://shop.test/cancel", default));
+            Assert.Equal(FakeOnlineGateway.RedirectUrl, await online.StartAsync(result.OrderId, result.AccessToken, "cs-CZ", "https://shop.test/ok", "https://shop.test/cancel", default));
+        }
+        await using var verify = database.CreateDb();
+        Assert.Equal(FakeOnlineGateway.SessionId, await verify.Payments.AsNoTracking().Where(x => x.OrderId == result.OrderId).Select(x => x.ProviderReference).SingleAsync());
+    }
+    [Fact]
+    public async Task Card_checkout_is_refused_when_gateway_is_not_configured_and_stock_is_kept()
+    {
+        var productId = await Product(1);
+        var token = Guid.NewGuid().ToString("N");
+        await using (var db = database.CreateDb())
+        {
+            var service = CardService(db, enabled: false);
+            await service.AddAsync(token, null, "cs-CZ", new AddToCartRequest(productId, null, 1, []), default);
+            var checkout = Checkout($"card-off-{Guid.NewGuid():N}");
+            checkout.PaymentMethod = PaymentMethod.Card;
+            await Assert.ThrowsAsync<ValidationException>(() => service.CheckoutAsync(token, null, checkout, default));
+        }
+        await using var verify = database.CreateDb();
+        Assert.Equal(1, await verify.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
+    }
+    [Fact]
+    public async Task Expired_latest_payment_page_cancels_unpaid_card_order_and_returns_stock()
+    {
+        var productId = await Product(1);
+        var result = await CardOrder(productId);
+        await using (var db = database.CreateDb())
+        {
+            var gateway = new FakeOnlineGateway(true);
+            var online = new OnlinePaymentService(db, CardService(db), gateway, NullLogger<OnlinePaymentService>.Instance);
+            await online.StartAsync(result.OrderId, result.AccessToken, "cs-CZ", "https://shop.test/ok", "https://shop.test/cancel", default);
+            gateway.WebhookEvent = new OnlinePaymentEvent($"evt_{Guid.NewGuid():N}", "checkout.session.expired", false, result.OrderId, FakeOnlineGateway.SessionId, 0, "czk");
+            Assert.Equal(PaymentWebhookResult.Processed, await online.HandleWebhookAsync("{}", "sig", default));
+            Assert.Equal(PaymentWebhookResult.Processed, await online.HandleWebhookAsync("{}", "sig", default));
+        }
+        await using var verify = database.CreateDb();
+        var order = await verify.Orders.AsNoTracking().Include(x => x.Payments).Include(x => x.StatusHistory).SingleAsync(x => x.Id == result.OrderId);
+        Assert.Equal(OrderStatus.Cancelled, order.Status);
+        Assert.Equal(PaymentStatus.Cancelled, Assert.Single(order.Payments).Status);
+        Assert.Single(order.StatusHistory, x => x.Reason.Contains("do 24 hodin"));
+        Assert.Equal(1, await verify.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
+    }
+    [Fact]
+    public async Task Expired_older_payment_page_does_not_cancel_order_with_newer_retry()
+    {
+        var productId = await Product(1);
+        var result = await CardOrder(productId);
+        await using (var db = database.CreateDb())
+        {
+            var online = new OnlinePaymentService(db, CardService(db), new FakeOnlineGateway(true), NullLogger<OnlinePaymentService>.Instance);
+            await online.StartAsync(result.OrderId, result.AccessToken, "cs-CZ", "https://shop.test/ok", "https://shop.test/cancel", default);
+            Assert.True(await CardService(db).ExpireOnlinePaymentAsync(new OnlinePaymentEvent($"evt_{Guid.NewGuid():N}", "checkout.session.expired", false, result.OrderId, "cs_test_older", 0, "czk"), default));
+        }
+        await using var verify = database.CreateDb();
+        Assert.Equal(OrderStatus.PendingPayment, await verify.Orders.AsNoTracking().Where(x => x.Id == result.OrderId).Select(x => x.Status).SingleAsync());
+        Assert.Equal(0, await verify.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
+    }
+    [Fact]
+    public async Task Expiry_after_payment_does_not_cancel_paid_order()
+    {
+        var productId = await Product(1);
+        var result = await CardOrder(productId);
+        await using (var db = database.CreateDb())
+        {
+            var online = new OnlinePaymentService(db, CardService(db), new FakeOnlineGateway(true), NullLogger<OnlinePaymentService>.Instance);
+            await online.StartAsync(result.OrderId, result.AccessToken, "cs-CZ", "https://shop.test/ok", "https://shop.test/cancel", default);
+        }
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ConfirmOnlinePaymentAsync(new OnlinePaymentEvent($"evt_{Guid.NewGuid():N}", "checkout.session.completed", true, result.OrderId, FakeOnlineGateway.SessionId, (long)(result.Total * 100), "czk"), default));
+        await using (var db = database.CreateDb()) Assert.True(await CardService(db).ExpireOnlinePaymentAsync(new OnlinePaymentEvent($"evt_{Guid.NewGuid():N}", "checkout.session.expired", false, result.OrderId, FakeOnlineGateway.SessionId, 0, "czk"), default));
+        await using var verify = database.CreateDb();
+        Assert.Equal(OrderStatus.Paid, await verify.Orders.AsNoTracking().Where(x => x.Id == result.OrderId).Select(x => x.Status).SingleAsync());
+        Assert.Equal(0, await verify.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
+    }
+    private sealed class FakeOnlineGateway(bool enabled) : IOnlinePaymentGateway
+    {
+        public const string SessionId = "cs_test_fake";
+        public const string RedirectUrl = "https://checkout.stripe.test/cs_test_fake";
+        public bool IsEnabled => enabled;
+        public Task<OnlineCheckoutSession> CreateCheckoutSessionAsync(OnlineCheckoutRequest request, CancellationToken ct) => Task.FromResult(new OnlineCheckoutSession(SessionId, RedirectUrl));
+        public OnlinePaymentEvent? WebhookEvent { get; set; }
+        public bool TryParseWebhook(string payload, string? signatureHeader, out OnlinePaymentEvent? paymentEvent) { paymentEvent = WebhookEvent; return true; }
     }
     async Task<(Guid ProductId, Guid OptionId, Guid OptionValueId)> ConfiguredProduct(int stock)
     {

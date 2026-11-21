@@ -5,6 +5,7 @@ using DesignStore.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DesignStore.Infrastructure.Persistence;
 
@@ -39,9 +40,21 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<GalleryItem> GalleryItems => Set<GalleryItem>(); public DbSet<GalleryItemTranslation> GalleryItemTranslations => Set<GalleryItemTranslation>();
     public DbSet<Review> Reviews => Set<Review>(); public DbSet<NewsletterSubscription> NewsletterSubscriptions => Set<NewsletterSubscription>(); public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // The application keeps all times in UTC. PostgreSQL stores them as timestamptz; values whose Kind is
+        // Unspecified (e.g. from admin forms) are treated as UTC, as they were with SQL Server datetime2.
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<UtcDateTimeConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }
+
+public sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
+    value => value.Kind == DateTimeKind.Utc ? value : value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : DateTime.SpecifyKind(value, DateTimeKind.Utc),
+    value => DateTime.SpecifyKind(value, DateTimeKind.Utc));

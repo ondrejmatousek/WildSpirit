@@ -11,6 +11,8 @@ namespace DesignStore.Infrastructure.Persistence;
 public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<ApplicationUser> users,
     RoleManager<IdentityRole<Guid>> roles, IConfiguration configuration)
 {
+    public static readonly string[] Roles = ["Administrator", "ContentManager", "CatalogEditor", "Warehouse", "Support", "Customer"];
+
     public async Task RunAsync(CancellationToken ct = default)
     {
         await db.Database.MigrateAsync(ct);
@@ -25,7 +27,7 @@ public sealed class DevelopmentSeed(ApplicationDbContext db, UserManager<Applica
 
     private async Task SeedRolesAsync()
     {
-        foreach (var role in new[] { "Administrator", "ContentManager", "CatalogEditor", "Warehouse", "Support", "Customer" })
+        foreach (var role in Roles)
             if (!await roles.RoleExistsAsync(role)) await roles.CreateAsync(new IdentityRole<Guid>(role));
     }
 

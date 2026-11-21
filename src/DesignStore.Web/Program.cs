@@ -50,5 +50,6 @@ app.MapGet("/sitemap.xml", async (HttpContext context, IMarketingService marketi
 });
 app.MapGet("/", () => Results.Redirect("/cs-CZ"));
 if (app.Environment.IsDevelopment()) { await using var scope = app.Services.CreateAsyncScope(); await scope.ServiceProvider.GetRequiredService<DevelopmentSeed>().RunAsync(); }
+else if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup")) { await using var scope = app.Services.CreateAsyncScope(); await scope.ServiceProvider.GetRequiredService<ProductionBootstrap>().RunAsync(); }
 app.Run();
 public partial class Program;

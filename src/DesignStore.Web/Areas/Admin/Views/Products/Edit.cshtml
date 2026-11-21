@@ -81,6 +81,7 @@
             </label>
             <label data-ready-field>Sklad
                 <input asp-for="StockQuantity" type="number" data-stock-quantity data-testid="product-stock" />
+                <input asp-for="OriginalStockQuantity" type="hidden" />
                 <small class="field-help">Počet hotových kusů skladem.</small>
             </label>
             <label data-custom-field>Doba výroby ve dnech
@@ -219,6 +220,7 @@
                     </label>
                     <label>Sklad
                         <input asp-for="Variants[i].StockQuantity" type="number" />
+                        <input asp-for="Variants[i].OriginalStockQuantity" type="hidden" />
                     </label>
                     <label>Dostupnost
                         <select asp-for="Variants[i].AvailabilityStatus" asp-items="Html.GetEnumSelectList<AvailabilityStatus>()">

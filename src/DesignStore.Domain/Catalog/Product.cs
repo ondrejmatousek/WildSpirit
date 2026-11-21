@@ -25,7 +25,6 @@ public sealed class Product : AuditableEntity
     public bool HasVariants { get; set; }
     public int DisplayOrder { get; set; }
     public string MainImageUrl { get; set; } = string.Empty;
-    public byte[] RowVersion { get; set; } = [];
     public List<ProductTranslation> Translations { get; set; } = [];
     public List<ProductVariant> Variants { get; set; } = [];
     public List<ProductImage> Images { get; set; } = [];
@@ -76,7 +75,6 @@ public sealed class ProductVariant : AuditableEntity
     public int StockQuantity { get; set; }
     public bool CanBeMadeToOrder { get; set; }
     public int? EstimatedProductionDays { get; set; }
-    public byte[] RowVersion { get; set; } = [];
     public List<ProductVariantTranslation> Translations { get; set; } = [];
     public List<ProductVariantOptionValue> OptionValues { get; set; } = [];
 }

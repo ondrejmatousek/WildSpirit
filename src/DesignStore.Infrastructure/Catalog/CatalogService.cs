@@ -43,6 +43,7 @@ public sealed class CatalogService(ApplicationDbContext db) : ICatalogService
 
     public async Task<ProductDetail?> GetProductAsync(string culture, string slug, CancellationToken ct)
     {
+        slug = slug.ToLowerInvariant(); // slugs are stored lower-case; PostgreSQL compares case-sensitively
         var product = await BaseProductQuery()
             .FirstOrDefaultAsync(p => p.Translations.Any(t => t.Culture == culture && t.Slug == slug), ct);
         if (product is null) return null;

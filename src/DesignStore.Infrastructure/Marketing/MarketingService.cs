@@ -14,14 +14,14 @@ public sealed class MarketingService(ApplicationDbContext db) : IMarketingServic
     public async Task<ContentPageView?> GetPageAsync(string culture, string slug, CancellationToken ct)
     {
         var preferred = await db.ContentPageTranslations.AsNoTracking()
-            .Where(x => x.ContentPage.IsPublished && x.Culture == culture && x.Slug == slug)
+            .Where(x => x.ContentPage.IsPublished && x.Culture == culture && x.Slug.ToLower() == slug.ToLower())
             .Select(x => new ContentPageView(x.ContentPageId, x.Title, x.Slug, x.Summary, x.BodyHtml, x.SeoTitle, x.SeoDescription))
             .FirstOrDefaultAsync(ct);
 
         if (preferred is not null) return preferred;
 
         return await db.ContentPageTranslations.AsNoTracking()
-            .Where(x => x.ContentPage.IsPublished && x.Culture == "cs-CZ" && x.Slug == slug)
+            .Where(x => x.ContentPage.IsPublished && x.Culture == "cs-CZ" && x.Slug.ToLower() == slug.ToLower())
             .Select(x => new ContentPageView(x.ContentPageId, x.Title, x.Slug, x.Summary, x.BodyHtml, x.SeoTitle, x.SeoDescription))
             .FirstOrDefaultAsync(ct);
     }

@@ -5,6 +5,7 @@ using DesignStore.Infrastructure.Persistence;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,16 +17,29 @@ public sealed class CommerceService(ApplicationDbContext db, IEnumerable<IPaymen
     const string GiftVoucherSkuPrefix = "WS-GIFT-VOUCHER";
     const string GiftVoucherCodePrefix = "WS-GIFT-";
 
-    static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+    internal static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     IQueryable<Cart> CartGraph() => db.Carts.Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x.Translations).Include(x => x.Items).ThenInclude(x => x.ProductVariant).ThenInclude(x => x!.Translations).Include(x => x.Items).ThenInclude(x => x.Configuration).AsSplitQuery();
-    async Task<Cart> CartAsync(string token, Guid? userId, string culture, bool create, CancellationToken ct)
+    // Carts owned by a user are never addressable by the browser cookie token (their TokenHash is random),
+    // so an anonymous visitor on the same browser after logout cannot see or check out the user's cart.
+    static string DetachedTokenHash() => Hash(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)));
+    async Task<Cart> CartAsync(string token, Guid? userId, string? culture, bool create, CancellationToken ct)
     {
         var hash = Hash(token); Cart? cart = null;
-        if (userId.HasValue) { cart = await CartGraph().FirstOrDefaultAsync(x => x.UserId == userId, ct); var anonymous = await CartGraph().FirstOrDefaultAsync(x => x.TokenHash == hash && x.UserId == null, ct); if (cart is null && anonymous is not null) { anonymous.UserId = userId; cart = anonymous; } else if (cart is not null && anonymous is not null && cart.Id != anonymous.Id) { foreach (var item in anonymous.Items) { var existing = cart.Items.FirstOrDefault(x => x.ProductId == item.ProductId && x.ProductVariantId == item.ProductVariantId && x.ConfigurationFingerprint == item.ConfigurationFingerprint); if (existing is null) { item.Cart = cart; cart.Items.Add(item); } else existing.Quantity = Math.Min(99, existing.Quantity + item.Quantity); } db.Carts.Remove(anonymous); } }
-        cart ??= await CartGraph().FirstOrDefaultAsync(x => x.TokenHash == hash, ct);
+        if (!userId.HasValue) cart = await CartGraph().FirstOrDefaultAsync(x => x.TokenHash == hash && x.UserId == null, ct);
+        if (userId.HasValue) { cart = await CartGraph().FirstOrDefaultAsync(x => x.UserId == userId, ct); var anonymous = await CartGraph().FirstOrDefaultAsync(x => x.TokenHash == hash && x.UserId == null, ct); if (cart is null && anonymous is not null) { anonymous.UserId = userId; anonymous.TokenHash = DetachedTokenHash(); cart = anonymous; } else if (cart is not null && anonymous is not null && cart.Id != anonymous.Id) { foreach (var item in anonymous.Items) { var existing = cart.Items.FirstOrDefault(x => x.ProductId == item.ProductId && x.ProductVariantId == item.ProductVariantId && x.ConfigurationFingerprint == item.ConfigurationFingerprint); if (existing is null) { item.Cart = cart; cart.Items.Add(item); } else existing.Quantity = Math.Min(99, existing.Quantity + item.Quantity); } db.Carts.Remove(anonymous); } }
         if (cart is null && !create) throw new KeyNotFoundException("Košík nebyl nalezen.");
-        if (cart is null) { cart = new Cart { TokenHash = hash, UserId = userId, Culture = culture }; db.Carts.Add(cart); }
-        cart.Culture = culture; cart.ExpiresAtUtc = DateTime.UtcNow.AddDays(30); return cart;
+        if (cart is null)
+        {
+            if (!userId.HasValue)
+            {
+                // Legacy user cart still bound to this cookie token: detach it so the token can start a new anonymous cart.
+                var foreign = await db.Carts.FirstOrDefaultAsync(x => x.TokenHash == hash, ct);
+                if (foreign is not null) { foreign.TokenHash = DetachedTokenHash(); await db.SaveChangesAsync(ct); }
+            }
+            cart = new Cart { TokenHash = userId.HasValue ? DetachedTokenHash() : hash, UserId = userId, Culture = culture ?? "cs-CZ" }; db.Carts.Add(cart);
+        }
+        if (culture is not null) cart.Culture = culture;
+        cart.ExpiresAtUtc = DateTime.UtcNow.AddDays(30); return cart;
     }
     public async Task<CartView> GetCartAsync(string token, Guid? userId, string culture, CancellationToken ct) { var cart = await CartAsync(token, userId, culture, true, ct); await Reprice(cart, culture, ct); await db.SaveChangesAsync(ct); return await View(cart, culture, ct); }
     public async Task AddAsync(string token, Guid? userId, string culture, AddToCartRequest r, CancellationToken ct)
@@ -37,16 +51,31 @@ public sealed class CommerceService(ApplicationDbContext db, IEnumerable<IPaymen
     }
     static List<CartItemConfiguration> ValidateConfiguration(Product p, List<CartConfigurationInput> inputs) { var result = new List<CartItemConfiguration>(); foreach (var option in p.Options) { var input = inputs.FirstOrDefault(x => x.ProductOptionId == option.Id); if (option.IsRequired && input is null) throw new ValidationException("Povinná konfigurace chybí."); if (input is null) continue; ProductOptionValue? value = null; if (input.ProductOptionValueId.HasValue) { value = option.Values.FirstOrDefault(x => x.Id == input.ProductOptionValueId && x.IsActive) ?? throw new ValidationException("Neplatná hodnota konfigurace."); } var text = input.CustomText?.Trim(); if (!string.IsNullOrEmpty(text) && (text.Length > (option.MaximumTextLength ?? 500) || text.Contains('<') || text.Contains('>'))) throw new ValidationException("Neplatný vlastní text."); result.Add(new CartItemConfiguration { ProductOptionId = option.Id, ProductOptionValueId = value?.Id, CustomText = text, PriceAdjustment = value?.PriceAdjustment ?? 0 }); } if (inputs.Any(x => p.Options.All(o => o.Id != x.ProductOptionId))) throw new ValidationException("Konfigurace nepatří produktu."); return result; }
     static string Fingerprint(IEnumerable<CartItemConfiguration> c) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('|', c.OrderBy(x => x.ProductOptionId).Select(x => $"{x.ProductOptionId}:{x.ProductOptionValueId}:{x.CustomText}")))));
-    public async Task UpdateQuantityAsync(string token, Guid? userId, Guid itemId, int quantity, CancellationToken ct) { var c = await CartAsync(token, userId, "cs-CZ", false, ct); var item = c.Items.FirstOrDefault(x => x.Id == itemId) ?? throw new KeyNotFoundException(); if (quantity <= 0) db.CartItems.Remove(item); else if (quantity <= 99) item.Quantity = quantity; else throw new ValidationException("Množství je nejvýše 99."); await db.SaveChangesAsync(ct); }
+    public async Task UpdateQuantityAsync(string token, Guid? userId, Guid itemId, int quantity, CancellationToken ct) { var c = await CartAsync(token, userId, null, false, ct); var item = c.Items.FirstOrDefault(x => x.Id == itemId) ?? throw new KeyNotFoundException(); if (quantity <= 0) db.CartItems.Remove(item); else if (quantity <= 99) item.Quantity = quantity; else throw new ValidationException("Množství je nejvýše 99."); await db.SaveChangesAsync(ct); }
     public async Task RemoveAsync(string token, Guid? userId, Guid itemId, CancellationToken ct) => await UpdateQuantityAsync(token, userId, itemId, 0, ct);
-    public async Task ApplyDiscountAsync(string token, Guid? userId, string code, CancellationToken ct) { var c = await CartAsync(token, userId, "cs-CZ", false, ct); var normalized = code.Trim().ToUpperInvariant(); var d = await ValidDiscount(normalized, ct) ?? throw new ValidationException("Slevový kód není platný."); c.DiscountCode = d.Code; await db.SaveChangesAsync(ct); }
-    async Task<DiscountCode?> ValidDiscount(string? code, CancellationToken ct) { if (string.IsNullOrWhiteSpace(code)) return null; var now = DateTime.UtcNow; return await db.DiscountCodes.FirstOrDefaultAsync(x => x.Code == code && x.IsActive && (!x.ValidFromUtc.HasValue || x.ValidFromUtc <= now) && (!x.ValidToUtc.HasValue || x.ValidToUtc >= now) && (!x.MaximumUses.HasValue || x.UsedCount < x.MaximumUses), ct); }
+    public async Task ApplyDiscountAsync(string token, Guid? userId, string code, CancellationToken ct) { var c = await CartAsync(token, userId, null, false, ct); var normalized = code.Trim().ToUpperInvariant(); var d = await ValidDiscount(normalized, ct) ?? throw new ValidationException("Slevový kód není platný."); c.DiscountCode = d.Code; await db.SaveChangesAsync(ct); }
+    async Task<DiscountCode?> ValidDiscount(string? code, CancellationToken ct) { if (string.IsNullOrWhiteSpace(code)) return null; var now = DateTime.UtcNow; return await db.DiscountCodes.FirstOrDefaultAsync(x => x.Code.ToUpper() == code && x.IsActive && (!x.ValidFromUtc.HasValue || x.ValidFromUtc <= now) && (!x.ValidToUtc.HasValue || x.ValidToUtc >= now) && (!x.MaximumUses.HasValue || x.UsedCount < x.MaximumUses), ct); }
     async Task Reprice(Cart c, string culture, CancellationToken ct) { foreach (var item in c.Items) { var p = await db.Products.Include(x => x.Variants).Include(x => x.Options).ThenInclude(x => x.Values).FirstAsync(x => x.Id == item.ProductId, ct); var v = p.Variants.FirstOrDefault(x => x.Id == item.ProductVariantId); var adjustments = item.Configuration.Sum(x => p.Options.SelectMany(o => o.Values).FirstOrDefault(v => v.Id == x.ProductOptionValueId)?.PriceAdjustment ?? 0); item.LastUnitPrice = CommerceRules.RoundMoney((v?.Price ?? p.BasePrice) + adjustments); } }
     async Task<CartView> View(Cart c, string culture, CancellationToken ct) { var lines = c.Items.Select(x => new CartLine(x.Id, x.Product.Translations.FirstOrDefault(t => t.Culture == culture)?.Name ?? x.Product.Translations.First().Name, x.ProductVariant?.Translations.FirstOrDefault(t => t.Culture == culture)?.Name ?? x.ProductVariant?.Name ?? "", x.ProductVariant?.Sku ?? x.Product.Sku, x.Product.MainImageUrl, x.Quantity, x.LastUnitPrice, x.LastUnitPrice * x.Quantity, x.Configuration.OrderBy(cfg => cfg.ProductOptionId).Select(cfg => cfg.CustomText ?? cfg.ProductOptionValueId?.ToString() ?? string.Empty).ToList())).ToList(); var subtotal = CommerceRules.RoundMoney(lines.Sum(x => x.Total)); var d = await ValidDiscount(c.DiscountCode, ct); var discount = d is not null && subtotal >= d.MinimumOrderValue ? CommerceRules.Discount(d.Type, d.Value, subtotal) : 0; return new CartView(c.Id, lines, subtotal, discount, subtotal - discount, c.Currency, c.DiscountCode); }
     public async Task<CheckoutResult> CheckoutAsync(string token, Guid? userId, CheckoutRequest r, CancellationToken ct)
     {
+        try { return await CheckoutCoreAsync(token, userId, r, ct); }
+        catch (Exception e) when (IsConcurrencyConflict(e))
+        {
+            // The serializable transaction lost a race (typically for the last piece in stock); nothing was written.
+            throw new ValidationException("Zboží si právě objednává jiný zákazník. Zkontrolujte košík a odešlete objednávku znovu.");
+        }
+    }
+    static bool IsConcurrencyConflict(Exception e)
+    {
+        for (Exception? x = e; x is not null; x = x.InnerException)
+            if (x is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected }) return true;
+        return false;
+    }
+    async Task<CheckoutResult> CheckoutCoreAsync(string token, Guid? userId, CheckoutRequest r, CancellationToken ct)
+    {
         await checkoutValidator.ValidateAndThrowAsync(r, ct); var prior = await db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.IdempotencyKey == r.IdempotencyKey, ct); if (prior is not null) return new(prior.Id, prior.Number, prior.Total, prior.Currency, prior.PaymentStatus, r.IdempotencyKey);
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct); var cart = await CartAsync(token, userId, "cs-CZ", false, ct); if (cart.Items.Count == 0) throw new ValidationException("Košík je prázdný."); await Reprice(cart, cart.Culture, ct); var cv = await View(cart, cart.Culture, ct); var discount = await ValidDiscount(cart.DiscountCode, ct); var shipping = r.ShippingMethod == "pickup" ? 0m : 250m; var order = new Order { Number = await NextOrderNumberAsync(ct), IdempotencyKey = r.IdempotencyKey, AccessTokenHash = Hash(r.IdempotencyKey), UserId = userId, Email = r.Email.Trim(), Currency = cart.Currency, Subtotal = cv.Subtotal, DiscountTotal = cv.Discount, ShippingTotal = shipping, Total = CommerceRules.RoundMoney(cv.Total + shipping), DiscountCode = discount?.Code, ShippingMethod = r.ShippingMethod };
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct); var cart = await CartAsync(token, userId, null, false, ct); if (cart.Items.Count == 0) throw new ValidationException("Košík je prázdný."); await Reprice(cart, cart.Culture, ct); var cv = await View(cart, cart.Culture, ct); var discount = await ValidDiscount(cart.DiscountCode, ct); var shipping = r.ShippingMethod == "pickup" ? 0m : 250m; var order = new Order { Number = await NextOrderNumberAsync(ct), IdempotencyKey = r.IdempotencyKey, AccessTokenHash = Hash(r.IdempotencyKey), UserId = userId, Email = r.Email.Trim(), Currency = cart.Currency, Subtotal = cv.Subtotal, DiscountTotal = cv.Discount, ShippingTotal = shipping, Total = CommerceRules.RoundMoney(cv.Total + shipping), DiscountCode = discount?.Code, ShippingMethod = r.ShippingMethod };
         foreach (var ci in cart.Items)
         {
             var p = await db.Products.Include(x => x.Translations).Include(x => x.Variants).ThenInclude(x => x.Translations).Include(x => x.Options).ThenInclude(x => x.Translations).Include(x => x.Options).ThenInclude(x => x.Values).ThenInclude(x => x.Translations).FirstAsync(x => x.Id == ci.ProductId, ct); var v = p.Variants.FirstOrDefault(x => x.Id == ci.ProductVariantId); if (!p.IsPublished) throw new ValidationException("Produkt již není dostupný."); int previous; if (v is not null) { previous = v.StockQuantity; var affected = await db.ProductVariants.Where(x => x.Id == v.Id && x.AvailabilityStatus == AvailabilityStatus.InStock && x.StockQuantity >= ci.Quantity).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, x => x.StockQuantity - ci.Quantity), ct); if (affected != 1) throw new ValidationException("Varianta již není skladem v požadovaném množství."); } else { previous = p.StockQuantity; var affected = await db.Products.Where(x => x.Id == p.Id && x.IsPublished && x.AvailabilityStatus == AvailabilityStatus.InStock && x.StockQuantity >= ci.Quantity).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, x => x.StockQuantity - ci.Quantity), ct); if (affected != 1) throw new ValidationException("Produkt již není skladem v požadovaném množství."); }
@@ -112,6 +141,7 @@ public sealed class CommerceService(ApplicationDbContext db, IEnumerable<IPaymen
          .Include(x => x.Items).ThenInclude(x => x.Configuration)
          .Include(x => x.Addresses)
          .Include(x => x.StatusHistory)
+         .Include(x => x.Payments)
          .AsSplitQuery()
          .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (order is null) return null;
@@ -124,7 +154,49 @@ public sealed class CommerceService(ApplicationDbContext db, IEnumerable<IPaymen
          order.Addresses.OrderBy(x => x.Type).Select(a => new OrderAddressView(a.Type, a.FullName, a.Company, a.Street, a.City, a.PostalCode, a.CountryCode, a.Phone)).ToList(),
          movements.Select(m => new OrderInventoryMovementView(m.Type.ToString(), m.ProductVariantId.HasValue ? order.Items.FirstOrDefault(i => i.ProductVariantId == m.ProductVariantId)?.Sku ?? "" : m.ProductId.HasValue ? order.Items.FirstOrDefault(i => i.ProductId == m.ProductId)?.Sku ?? "" : "", m.ProductVariantId.HasValue && variantNames.TryGetValue(m.ProductVariantId.Value, out var vn) ? vn : m.ProductId.HasValue && productNames.TryGetValue(m.ProductId.Value, out var pn) ? pn : "Položka", m.QuantityChange, m.PreviousQuantity, m.NewQuantity, m.Reason, m.CreatedAtUtc)).ToList(),
          order.StatusHistory.OrderBy(h => h.CreatedAtUtc).Select(h => $"{h.CreatedAtUtc:g} · {h.PreviousStatus?.ToString() ?? "Nová"} → {h.NewStatus} · {h.Reason}").ToList(),
-         giftVoucherCodes);
+         giftVoucherCodes,
+         order.Payments.OrderByDescending(p => p.CreatedAtUtc).Select(p => (PaymentMethod?)p.Method).FirstOrDefault());
+    }
+    public Task<bool> ConfirmOnlinePaymentAsync(OnlinePaymentEvent e, CancellationToken ct) => RetryOnConflictAsync(() => ConfirmOnlinePaymentCoreAsync(e, ct));
+    public Task<bool> ExpireOnlinePaymentAsync(OnlinePaymentEvent e, CancellationToken ct) => RetryOnConflictAsync(() => ExpireOnlinePaymentCoreAsync(e, ct));
+    // A concurrent delivery of the same Stripe event (unique ExternalEventId) or a serialization conflict is retried once
+    // on a clean change tracker; the retry sees the committed state and is idempotent.
+    async Task<bool> RetryOnConflictAsync(Func<Task<bool>> action)
+    {
+        try { return await action(); }
+        catch (Exception e) when (IsConcurrencyConflict(e) || IsUniqueViolation(e)) { db.ChangeTracker.Clear(); return await action(); }
+    }
+    static bool IsUniqueViolation(Exception e)
+    {
+        for (Exception? x = e; x is not null; x = x.InnerException)
+            if (x is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation }) return true;
+        return false;
+    }
+    async Task<bool> ConfirmOnlinePaymentCoreAsync(OnlinePaymentEvent e, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        if (await db.Payments.AnyAsync(x => x.ExternalEventId == e.EventId, ct)) { await tx.CommitAsync(ct); return true; }
+        var o = await db.Orders.Include(x => x.Payments).FirstOrDefaultAsync(x => x.Id == e.OrderId, ct);
+        if (o is null || !string.Equals(o.Currency, e.Currency, StringComparison.OrdinalIgnoreCase) || decimal.Round(o.Total * 100m, 0) != e.AmountMinor) return false;
+        if (o.PaymentStatus == PaymentStatus.Paid)
+        {
+            // Same session re-reported: nothing to do. A different paid session means the customer paid twice: record it for a refund.
+            if (o.Payments.Any(x => x.Status == PaymentStatus.Paid && x.ProviderReference == e.SessionId)) { await tx.CommitAsync(ct); return true; }
+            db.Payments.Add(new Payment { OrderId = o.Id, Method = PaymentMethod.Card, Status = PaymentStatus.Paid, Amount = o.Total, Currency = o.Currency, PaidAtUtc = DateTime.UtcNow, ExternalEventId = e.EventId, ProviderReference = e.SessionId, CreatedBy = "Stripe" });
+            db.Add(new OrderStatusHistory { OrderId = o.Id, PreviousStatus = o.Status, NewStatus = o.Status, Reason = $"Objednávka byla zaplacena kartou podruhé (Stripe {e.SessionId}) – vraťte zákazníkovi duplicitní platbu.", CreatedBy = "Stripe" });
+            await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); return true;
+        }
+
+        var payment = o.Payments.Where(x => x.Method == PaymentMethod.Card).OrderByDescending(x => x.CreatedAtUtc).FirstOrDefault();
+        if (payment is null) { payment = new Payment { Order = o, Method = PaymentMethod.Card, Currency = o.Currency }; o.Payments.Add(payment); db.Payments.Add(payment); }
+        payment.Status = PaymentStatus.Paid; payment.Amount = o.Total; payment.PaidAtUtc = DateTime.UtcNow; payment.ExternalEventId = e.EventId; payment.ProviderReference = e.SessionId; payment.UpdatedAtUtc = DateTime.UtcNow;
+        o.PaymentStatus = PaymentStatus.Paid;
+        var old = o.Status;
+        string reason;
+        if (o.Status == OrderStatus.PendingPayment) { o.Status = OrderStatus.Paid; await ActivateGiftVoucherCodesAsync(o, ct); reason = "Platba kartou přijata (Stripe)"; }
+        else reason = $"Platba kartou přijata u objednávky ve stavu {o.Status} – zkontrolujte, zda není nutné vrátit peníze.";
+        db.Add(new OrderStatusHistory { OrderId = o.Id, PreviousStatus = old, NewStatus = o.Status, Reason = reason, CreatedBy = "Stripe" });
+        await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); return true;
     }
     public async Task UpdateOrderContactAsync(Guid id, OrderContactUpdateRequest request, string? actor, CancellationToken ct)
     {
@@ -165,5 +237,26 @@ public sealed class CommerceService(ApplicationDbContext db, IEnumerable<IPaymen
         address.FullName = input.FullName.Trim(); address.Company = input.Company?.Trim() ?? ""; address.Street = input.Street.Trim(); address.City = input.City.Trim(); address.PostalCode = input.PostalCode.Trim(); address.CountryCode = input.CountryCode.Trim().ToUpperInvariant(); address.Phone = input.Phone?.Trim() ?? "";
     }
     public async Task ChangeStatusAsync(Guid id, OrderStatus status, string? actor, CancellationToken ct) { var o = await db.Orders.Include(x => x.StatusHistory).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException(); if (o.Status == status) return; if (!CommerceRules.CanTransition(o.Status, status)) throw new ValidationException("Neplatná změna stavu."); if (status == OrderStatus.Cancelled) { await CancelAsync(id, actor, ct); return; } var old = o.Status; o.Status = status; if (status == OrderStatus.Paid) { o.PaymentStatus = PaymentStatus.Paid; await ActivateGiftVoucherCodesAsync(o, ct); } var history = new OrderStatusHistory { Order = o, PreviousStatus = old, NewStatus = status, Reason = "Administrace", CreatedBy = actor }; o.StatusHistory.Add(history); db.Add(history); await db.SaveChangesAsync(ct); }
-    public async Task CancelAsync(Guid id, string? actor, CancellationToken ct) { await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct); var o = await db.Orders.Include(x => x.Items).Include(x => x.StatusHistory).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException(); if (o.StockReturnedAtUtc.HasValue) { await tx.CommitAsync(ct); return; } if (o.Status is OrderStatus.Shipped or OrderStatus.Completed) throw new ValidationException("Odeslanou objednávku nelze takto zrušit."); foreach (var i in o.Items) { if (i.ProductVariantId.HasValue) { var before = await db.ProductVariants.Where(x => x.Id == i.ProductVariantId).Select(x => x.StockQuantity).SingleAsync(ct); await db.ProductVariants.Where(x => x.Id == i.ProductVariantId).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, x => x.StockQuantity + i.Quantity).SetProperty(x => x.AvailabilityStatus, AvailabilityStatus.InStock), ct); db.InventoryMovements.Add(new InventoryMovement { ProductVariantId = i.ProductVariantId, OrderId = o.Id, Type = InventoryMovementType.Return, QuantityChange = i.Quantity, PreviousQuantity = before, NewQuantity = before + i.Quantity, Reason = "Storno objednávky", CreatedBy = actor }); } else if (i.ProductId.HasValue) { var before = await db.Products.Where(x => x.Id == i.ProductId).Select(x => x.StockQuantity).SingleAsync(ct); await db.Products.Where(x => x.Id == i.ProductId).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, x => x.StockQuantity + i.Quantity).SetProperty(x => x.AvailabilityStatus, AvailabilityStatus.InStock), ct); db.InventoryMovements.Add(new InventoryMovement { ProductId = i.ProductId, OrderId = o.Id, Type = InventoryMovementType.Return, QuantityChange = i.Quantity, PreviousQuantity = before, NewQuantity = before + i.Quantity, Reason = "Storno objednávky", CreatedBy = actor }); } } var old = o.Status; o.Status = OrderStatus.Cancelled; o.CancelledAtUtc = DateTime.UtcNow; o.StockReturnedAtUtc = DateTime.UtcNow; var history = new OrderStatusHistory { Order = o, PreviousStatus = old, NewStatus = OrderStatus.Cancelled, Reason = "Storno", CreatedBy = actor }; o.StatusHistory.Add(history); db.Add(history); await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); }
+    public Task CancelAsync(Guid id, string? actor, CancellationToken ct) => CancelCoreAsync(id, actor, "Storno", ct);
+    async Task<bool> ExpireOnlinePaymentCoreAsync(OnlinePaymentEvent e, CancellationToken ct)
+    {
+        var o = await db.Orders.AsNoTracking().Include(x => x.Payments).FirstOrDefaultAsync(x => x.Id == e.OrderId, ct);
+        if (o is null) return false;
+        if (o.Status != OrderStatus.PendingPayment || o.PaymentStatus == PaymentStatus.Paid) return true;
+        var payment = o.Payments.Where(x => x.Method == PaymentMethod.Card).OrderByDescending(x => x.CreatedAtUtc).FirstOrDefault();
+        // Only the customer's latest payment page counts: an older session expiring while a retry is open must not cancel the order.
+        if (payment is null || payment.ProviderReference != e.SessionId) return true;
+        // Re-checked inside the serializable cancel transaction: a payment or a retry may have arrived since the read above.
+        await CancelCoreAsync(o.Id, "Stripe", "Platba kartou nebyla dokončena do 24 hodin – objednávka zrušena, zboží vráceno na sklad.", ct, order =>
+        {
+            if (order.Status != OrderStatus.PendingPayment || order.PaymentStatus == PaymentStatus.Paid) return false;
+            var latest = order.Payments.Where(x => x.Method == PaymentMethod.Card).OrderByDescending(x => x.CreatedAtUtc).FirstOrDefault();
+            if (latest is null || latest.ProviderReference != e.SessionId || latest.Status != PaymentStatus.Pending) return false;
+            latest.Status = PaymentStatus.Cancelled; latest.UpdatedAtUtc = DateTime.UtcNow;
+            return true;
+        });
+        return true;
+    }
+    /// <param name="onlyIf">Optional guard evaluated on the order loaded inside the transaction (may update tracked payments); false leaves the order untouched.</param>
+    async Task CancelCoreAsync(Guid id, string? actor, string reason, CancellationToken ct, Func<Order, bool>? onlyIf = null) { await using var tx = await db.Database.BeginTransactionAsync(onlyIf is null ? IsolationLevel.ReadCommitted : IsolationLevel.Serializable, ct); var o = await db.Orders.Include(x => x.Items).Include(x => x.StatusHistory).Include(x => x.Payments).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException(); if (o.StockReturnedAtUtc.HasValue) { await tx.CommitAsync(ct); return; } if (onlyIf is not null && !onlyIf(o)) { await tx.CommitAsync(ct); return; } if (o.Status is OrderStatus.Shipped or OrderStatus.Completed) throw new ValidationException("Odeslanou objednávku nelze takto zrušit."); foreach (var i in o.Items) { if (i.ProductVariantId.HasValue) { var before = await db.ProductVariants.Where(x => x.Id == i.ProductVariantId).Select(x => x.StockQuantity).SingleAsync(ct); await db.ProductVariants.Where(x => x.Id == i.ProductVariantId).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, x => x.StockQuantity + i.Quantity).SetProperty(x => x.AvailabilityStatus, AvailabilityStatus.InStock), ct); db.InventoryMovements.Add(new InventoryMovement { ProductVariantId = i.ProductVariantId, OrderId = o.Id, Type = InventoryMovementType.Return, QuantityChange = i.Quantity, PreviousQuantity = before, NewQuantity = before + i.Quantity, Reason = "Storno objednávky", CreatedBy = actor }); } else if (i.ProductId.HasValue) { var before = await db.Products.Where(x => x.Id == i.ProductId).Select(x => x.StockQuantity).SingleAsync(ct); await db.Products.Where(x => x.Id == i.ProductId).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, x => x.StockQuantity + i.Quantity).SetProperty(x => x.AvailabilityStatus, AvailabilityStatus.InStock), ct); db.InventoryMovements.Add(new InventoryMovement { ProductId = i.ProductId, OrderId = o.Id, Type = InventoryMovementType.Return, QuantityChange = i.Quantity, PreviousQuantity = before, NewQuantity = before + i.Quantity, Reason = "Storno objednávky", CreatedBy = actor }); } } await db.DiscountCodes.Where(x => x.CreatedBy == o.Number && x.Code.StartsWith(GiftVoucherCodePrefix) && x.IsActive && x.UsedCount == 0).ExecuteUpdateAsync(s => s.SetProperty(c => c.IsActive, false).SetProperty(c => c.UpdatedAtUtc, DateTime.UtcNow), ct); var old = o.Status; o.Status = OrderStatus.Cancelled; o.CancelledAtUtc = DateTime.UtcNow; o.StockReturnedAtUtc = DateTime.UtcNow; var history = new OrderStatusHistory { Order = o, PreviousStatus = old, NewStatus = OrderStatus.Cancelled, Reason = reason, CreatedBy = actor }; o.StatusHistory.Add(history); db.Add(history); await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); }
 }

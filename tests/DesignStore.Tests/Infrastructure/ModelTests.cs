@@ -8,7 +8,7 @@ namespace DesignStore.Tests.Infrastructure;
 public sealed class ModelTests
 {
     private static ApplicationDbContext CreateDb() => new(new DbContextOptionsBuilder<ApplicationDbContext>()
-        .UseSqlServer("Server=.\\SQLEXPRESS;Database=ModelMetadataOnly;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False").Options);
+        .UseNpgsql("Host=localhost;Database=model_metadata_only").Options);
 
     [Fact]
     public void Model_contains_catalog_and_identity_with_concurrency_tokens()
@@ -16,7 +16,8 @@ public sealed class ModelTests
         using var db = CreateDb();
         Assert.NotNull(db.Model.FindEntityType(typeof(Product)));
         Assert.NotNull(db.Model.FindEntityType(typeof(ApplicationUser)));
-        Assert.True(db.Model.FindEntityType(typeof(Product))!.FindProperty(nameof(Product.RowVersion))!.IsConcurrencyToken);
+        Assert.True(db.Model.FindEntityType(typeof(Product))!.FindProperty("Version")!.IsConcurrencyToken);
+        Assert.True(db.Model.FindEntityType(typeof(DesignStore.Domain.Commerce.Order))!.FindProperty("Version")!.IsConcurrencyToken);
     }
 
     [Fact]

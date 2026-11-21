@@ -6,8 +6,8 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 namespace DesignStore.Tests.Infrastructure;
 
-[Collection("SqlServer database")]
-public sealed class CatalogAdminSqlTests(SqlServerDatabaseFixture database)
+[Collection("PostgreSQL database")]
+public sealed class CatalogAdminSqlTests(PostgresDatabaseFixture database)
 {
     [Fact]
     public async Task Changing_slug_creates_redirect_history()
@@ -536,6 +536,56 @@ public sealed class CatalogAdminSqlTests(SqlServerDatabaseFixture database)
             Assert.True(edit.Images[0].IsPrimary);
             Assert.Equal($"/media/product/{secondId}", edit.Images[0].Url);
             Assert.Equal($"/media/product/{secondId}?thumbnail=true", edit.Images[0].ThumbnailUrl);
+        }
+    }
+    [Fact]
+    public async Task Saving_stale_product_form_does_not_overwrite_stock_changed_by_checkout()
+    {
+        Guid productId;
+        await using (var db = database.CreateDb())
+        {
+            var category = new Category { Translations = [new CategoryTranslation { Culture = "cs-CZ", Name = "Stock test", Slug = $"stock-category-{Guid.NewGuid():N}", ShortDescription = "Test" }] };
+            db.Categories.Add(category);
+            await db.SaveChangesAsync();
+            productId = await Service(db).SaveProductAsync(new EditProductRequest
+            {
+                Sku = $"STOCK-{Guid.NewGuid():N}"[..18],
+                CategoryId = category.Id,
+                BasePrice = 1000,
+                VatRate = 21,
+                AvailabilityStatus = AvailabilityStatus.InStock,
+                TrackInventory = true,
+                StockQuantity = 3,
+                IsPublished = true,
+                Translations = [new ProductTranslationInput { Culture = "cs-CZ", Name = "Skladový kus", Slug = $"skladovy-kus-{Guid.NewGuid():N}", ShortDescription = "Test", LongDescription = "Test" }]
+            }, "test", default);
+        }
+
+        EditProductRequest staleForm;
+        await using (var db = database.CreateDb()) staleForm = (await Service(db).GetProductAsync(productId, default))!;
+        await using (var db = database.CreateDb()) await db.Products.Where(x => x.Id == productId).ExecuteUpdateAsync(s => s.SetProperty(x => x.StockQuantity, 2));
+
+        await using (var db = database.CreateDb())
+        {
+            staleForm.BasePrice = 1100;
+            await Service(db).SaveProductAsync(staleForm, "test", default);
+        }
+        await using (var db = database.CreateDb())
+        {
+            Assert.Equal(2, await db.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
+            staleForm.StockQuantity = 10;
+            await Assert.ThrowsAsync<ValidationException>(() => Service(db).SaveProductAsync(staleForm, "test", default));
+        }
+        await using (var db = database.CreateDb())
+        {
+            Assert.Equal(2, await db.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
+            var freshForm = (await Service(db).GetProductAsync(productId, default))!;
+            freshForm.StockQuantity = 5;
+            await Service(db).SaveProductAsync(freshForm, "test", default);
+        }
+        await using (var db = database.CreateDb())
+        {
+            Assert.Equal(5, await db.Products.AsNoTracking().Where(x => x.Id == productId).Select(x => x.StockQuantity).SingleAsync());
         }
     }
     private static CatalogAdminService Service(DesignStore.Infrastructure.Persistence.ApplicationDbContext db) => new(db, new EditProductRequestValidator(), new EditCategoryRequestValidator());

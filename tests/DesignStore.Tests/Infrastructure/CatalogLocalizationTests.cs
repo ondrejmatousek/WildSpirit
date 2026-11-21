@@ -3,8 +3,8 @@ using DesignStore.Infrastructure.Catalog;
 
 namespace DesignStore.Tests.Infrastructure;
 
-[Collection("SqlServer database")]
-public sealed class CatalogLocalizationTests(SqlServerDatabaseFixture database)
+[Collection("PostgreSQL database")]
+public sealed class CatalogLocalizationTests(PostgresDatabaseFixture database)
 {
     [Fact]
     public async Task Missing_requested_translation_falls_back_to_czech_in_sql_server()

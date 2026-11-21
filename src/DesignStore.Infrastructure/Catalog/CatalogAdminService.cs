@@ -46,6 +46,7 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
             AvailabilityStatus = p.AvailabilityStatus,
             TrackInventory = p.TrackInventory,
             StockQuantity = p.StockQuantity,
+            OriginalStockQuantity = p.StockQuantity,
             CanBeMadeToOrder = p.CanBeMadeToOrder,
             AutomaticallySwitchToMadeToOrder = p.AutomaticallySwitchToMadeToOrder,
             EstimatedProductionDays = p.EstimatedProductionDays,
@@ -57,7 +58,7 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
             DisplayOrder = p.DisplayOrder,
             MaterialIds = p.ProductMaterials.Select(x => x.MaterialId).ToList(),
             Translations = p.Translations.OrderBy(t => t.Culture).Select(t => new ProductTranslationInput { Culture = t.Culture, Name = t.Name, Slug = t.Slug, ShortDescription = t.ShortDescription, LongDescription = t.LongDescription, Story = t.Story, Materials = t.Materials, Dimensions = t.Dimensions, CareInstructions = t.CareInstructions, ShippingInformation = t.ShippingInformation, SeoTitle = t.SeoTitle, SeoDescription = t.SeoDescription, OpenGraphTitle = t.OpenGraphTitle, OpenGraphDescription = t.OpenGraphDescription }).ToList(),
-            Variants = p.Variants.OrderBy(v => v.Sku).Select(v => new ProductVariantInput { Id = v.Id, Sku = v.Sku, Name = v.Translations.FirstOrDefault(t => t.Culture == "cs-CZ")?.Name ?? v.Name, NameEn = v.Translations.FirstOrDefault(t => t.Culture == "en")?.Name ?? string.Empty, NameDe = v.Translations.FirstOrDefault(t => t.Culture == "de")?.Name ?? string.Empty, Price = v.Price, AvailabilityStatus = v.AvailabilityStatus, StockQuantity = v.StockQuantity, CanBeMadeToOrder = v.CanBeMadeToOrder, EstimatedProductionDays = v.EstimatedProductionDays }).ToList(),
+            Variants = p.Variants.OrderBy(v => v.Sku).Select(v => new ProductVariantInput { Id = v.Id, Sku = v.Sku, Name = v.Translations.FirstOrDefault(t => t.Culture == "cs-CZ")?.Name ?? v.Name, NameEn = v.Translations.FirstOrDefault(t => t.Culture == "en")?.Name ?? string.Empty, NameDe = v.Translations.FirstOrDefault(t => t.Culture == "de")?.Name ?? string.Empty, Price = v.Price, AvailabilityStatus = v.AvailabilityStatus, StockQuantity = v.StockQuantity, OriginalStockQuantity = v.StockQuantity, CanBeMadeToOrder = v.CanBeMadeToOrder, EstimatedProductionDays = v.EstimatedProductionDays }).ToList(),
             Options = p.Options.OrderBy(o => o.DisplayOrder).Select(o => new ProductOptionInput { Id = o.Id, Name = o.Translations.FirstOrDefault(t => t.Culture == "cs-CZ")?.Name ?? o.Translations.First().Name, Type = o.Type, IsRequired = o.IsRequired, MaximumTextLength = o.MaximumTextLength, Values = o.Values.OrderBy(v => v.DisplayOrder).Select(v => new ProductOptionValueInput { Id = v.Id, Name = v.Translations.FirstOrDefault(t => t.Culture == "cs-CZ")?.Name ?? v.Translations.First().Name, PriceAdjustment = v.PriceAdjustment, AdditionalProductionDays = v.AdditionalProductionDays, IsActive = v.IsActive }).ToList() }).ToList(),
             Images = p.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.DisplayOrder).Select(i => new ProductImageAdminItem(i.Id, $"/media/product/{i.Id}", $"/media/product/{i.Id}?thumbnail=true", i.AltText, i.IsPrimary, i.DisplayOrder, i.Width, i.Height)).ToList()
         };
@@ -77,6 +78,7 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
         Product product;
         if (request.Id.HasValue) product = await ProductAggregate().FirstOrDefaultAsync(p => p.Id == request.Id.Value, ct) ?? throw new KeyNotFoundException("Produkt nebyl nalezen.");
         else { product = new Product { CreatedBy = actor }; db.Products.Add(product); }
+        if (request.Id.HasValue) EnsureStockNotChangedSinceEdit(product, request);
         product.Sku = sku; product.CategoryId = request.CategoryId; product.CollectionId = request.CollectionId; product.BasePrice = request.BasePrice; product.StartingPrice = request.StartingPrice; product.VatRate = request.VatRate; product.AvailabilityStatus = request.AvailabilityStatus; product.TrackInventory = request.TrackInventory; product.StockQuantity = request.HasVariants ? 0 : request.StockQuantity; product.CanBeMadeToOrder = request.CanBeMadeToOrder; product.AutomaticallySwitchToMadeToOrder = request.AutomaticallySwitchToMadeToOrder; product.EstimatedProductionDays = request.EstimatedProductionDays; product.IsPublished = request.IsPublished; product.IsFeatured = request.IsFeatured; product.IsNew = request.IsNew; product.IsLimited = request.IsLimited; product.HasVariants = request.HasVariants; product.DisplayOrder = request.DisplayOrder; product.UpdatedAtUtc = DateTime.UtcNow; product.UpdatedBy = actor;
         SyncTranslations(product, request.Translations, actor);
         SyncVariants(product, request.Variants, request.HasVariants, actor);
@@ -85,6 +87,26 @@ public sealed class CatalogAdminService(ApplicationDbContext db, IValidator<Edit
         foreach (var id in request.MaterialIds.Distinct().Where(id => product.ProductMaterials.All(x => x.MaterialId != id))) product.ProductMaterials.Add(new ProductMaterial { Product = product, MaterialId = id });
         await db.SaveChangesAsync(ct);
         return product.Id;
+    }
+
+    // Prevents overselling: an admin form opened before a checkout must not overwrite the stock the checkout already decremented.
+    // Untouched stock fields keep the current database value; an edited stock field is rejected if the database changed meanwhile.
+    private static void EnsureStockNotChangedSinceEdit(Product product, EditProductRequest request)
+    {
+        var conflict = false;
+        if (!product.HasVariants && request.OriginalStockQuantity.HasValue)
+        {
+            if (request.StockQuantity == request.OriginalStockQuantity.Value) request.StockQuantity = product.StockQuantity;
+            else conflict |= request.OriginalStockQuantity.Value != product.StockQuantity;
+        }
+        foreach (var input in request.Variants.Where(i => i.Id.HasValue && i.OriginalStockQuantity.HasValue))
+        {
+            var variant = product.Variants.FirstOrDefault(v => v.Id == input.Id);
+            if (variant is null) continue;
+            if (input.StockQuantity == input.OriginalStockQuantity!.Value) input.StockQuantity = variant.StockQuantity;
+            else conflict |= input.OriginalStockQuantity.Value != variant.StockQuantity;
+        }
+        if (conflict) throw new ValidationException("Sklad se mezitím změnil (např. novou objednávkou). Otevřete produkt znovu a upravte sklad podle aktuálního stavu.");
     }
 
     public async Task ArchiveProductAsync(Guid id, string? actor, CancellationToken ct)

@@ -7,3 +7,6 @@ obj/
 appsettings.*.local.json
 src/DesignStore.Web/App_Data/
 artifacts/playwright/
+
+# Production secrets for the Oracle deployment
+deploy/oracle/production.env

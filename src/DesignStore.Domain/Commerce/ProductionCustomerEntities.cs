@@ -19,7 +19,6 @@ public sealed class ProductionJob : AuditableEntity
     public DateTime? PlannedCompletionUtc { get; set; }
     public DateTime? ActualCompletionUtc { get; set; }
     public string? ResponsibleUserId { get; set; }
-    public byte[] RowVersion { get; set; } = [];
     public List<ProductionJobStatusHistory> StatusHistory { get; set; } = [];
     public List<ProductionJobAttachment> Attachments { get; set; } = [];
     public List<ProductionJobNote> Notes { get; set; } = [];

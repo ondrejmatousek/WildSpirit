@@ -1,0 +1,63 @@
+# WildSpirit eshop on the Oracle Cloud ARM64 server (next to TradeReplay).
+# Run from this directory: sudo docker compose --env-file production.env up -d --build
+# The web container listens only on 127.0.0.1:4175; TradeReplay's Caddy (host network) terminates HTTPS.
+name: wildspirit
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wildspirit
+      POSTGRES_USER: wildspirit
+      POSTGRES_PASSWORD: "${WILDSPIRIT_DB_PASSWORD:?Set WILDSPIRIT_DB_PASSWORD in production.env}"
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=cs-CZ"
+    volumes:
+      - ${WILDSPIRIT_DATA_DIR:?Set WILDSPIRIT_DATA_DIR in production.env}/postgres:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wildspirit -d wildspirit"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: wildspirit-web:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      # Caddy forwards X-Forwarded-Proto/For; the port is reachable only from the server itself.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      # localhost/127.0.0.1 only for the health check from the server itself.
+      AllowedHosts: "${WILDSPIRIT_DOMAIN:?Set WILDSPIRIT_DOMAIN in production.env};localhost;127.0.0.1"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=wildspirit;Username=wildspirit;Password=${WILDSPIRIT_DB_PASSWORD}"
+      Database__MigrateOnStartup: "true"
+      FileStorage__Root: /app/data/files
+      DataProtection__KeysPath: /app/data/keys
+      Bootstrap__AdminEmail: "${WILDSPIRIT_ADMIN_EMAIL:-}"
+      Bootstrap__AdminPassword: "${WILDSPIRIT_ADMIN_PASSWORD:-}"
+      Stripe__SecretKey: "${STRIPE_SECRET_KEY:-}"
+      Stripe__WebhookSecret: "${STRIPE_WEBHOOK_SECRET:-}"
+    volumes:
+      - ${WILDSPIRIT_DATA_DIR}/app:/app/data
+    ports:
+      - "127.0.0.1:4175:8080"
+    networks: [internal]
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal: {}
